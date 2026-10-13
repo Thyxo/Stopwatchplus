@@ -9,6 +9,7 @@ import {
   renameRoutine, deleteRoutine, moveRoutine, restoreBuiltins,
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
+import { initHome, cardFromInput } from './home.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -488,7 +489,10 @@ function setPath(path, v) {
   obj[last] = v;
 }
 
+let openedAt = 0;
 function openSecret() {
+  openedAt = performance.now();
+  showPane('setup');
   syncPanel();
   secret.classList.remove('out');
   secret.hidden = false;
@@ -508,7 +512,8 @@ function closeSecret() {
   }, 220);
   syncIndicator();
 }
-$('#secretDone').addEventListener('click', closeSecret);
+// "Færdig" sidder dér, hvor man trykker 5 gange – ignorer tryk det første sekund
+$('#secretDone').addEventListener('click', () => { if (performance.now() - openedAt > 1000) closeSecret(); });
 
 function syncPanel() {
   $$('[data-s]', secret).forEach((el) => {
@@ -587,7 +592,7 @@ function renderLog() {
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
     if (e.kind === 'kort') {
-      d.textContent = `${time}  Kort valgt i Tidtagninger: ${prettyCard(e.card)}`;
+      d.textContent = `${time}  Kort valgt ${e.via === 'hjemmeskærm' ? 'på hjemmeskærmen' : 'i Tidtagninger'}: ${prettyCard(e.card)}`;
       box.appendChild(d);
       continue;
     }
@@ -845,6 +850,27 @@ $('#runSelftest').addEventListener('click', async () => {
   out.textContent = formatReport(runSelfTest({ runs: 2000, seed: Date.now() % 100000 }));
 });
 
+// ---------- perform: falsk hjemmeskærm med kort-input ----------
+const perform = initHome({
+  app,
+  onLaunch({ value, suit }) {
+    if (value || suit) {
+      settings.card.card = cardFromInput(value, suit, settings.card.card);
+      storeActive(settings);
+      saveSettings(settings);
+      engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card: settings.card.card, via: 'hjemmeskærm' });
+    }
+    runsDone = 0;
+    setTab('stopwatch', false);
+    syncIndicator();
+  },
+});
+$('#performBtn').addEventListener('click', () => {
+  if (performance.now() - openedAt < 400) return;
+  closeSecret();
+  setTimeout(() => perform.enter(), 230);
+});
+
 // ---------- højde: iOS-fejl i hjemmeskærm-apps ----------
 // I standalone-tilstand kan iOS melde en sidehøjde, der er statuslinjens højde for kort.
 const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
@@ -891,6 +917,7 @@ buildLaps();
 syncIndicator();
 render();
 kick();
+if (settings.performStart) perform.enter();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitBig(); placePill(false); });
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

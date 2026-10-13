@@ -4,12 +4,13 @@ export const SETTINGS_KEY = 'ur-stopur-indstillinger-v1';
 
 export const DEFAULTS = {
   active: true,
-  routine: 'hh', // valgt rutine ('' = egen opsætning)
+  routine: 'blank', // valgt rutine ('' = egen opsætning)
   custom: [], // (gammelt format – flyttes ind i routines)
   routines: [], // alle rutiner med hver sin kopi af indstillingerne (se routines.js)
   routinesSeeded: false,
+  blankStart: false, // første start sker på Tom rutine
   mode: 'single', // single | sequence | date | code | list
-  single: { value: '37', placement: 'hh' }, // auto | hh | sshh | mmsshh
+  single: { value: '', placement: 'hh' }, // auto | hh | sshh | mmsshh
   sequence: { text: '05 12 17 23 28 31 36', per: 2, stopTakes: true },
   date: { which: 'tomorrow', custom: '', plusMin: 0, placement: 'laps', stopTakes: true }, // which: tomorrow|today|custom|clock
   card: { stack: 'mnemonica', custom: '', card: 'AS', offset: 0, fromBottom: false, placement: 'hh', timerInput: true },
@@ -22,6 +23,7 @@ export const DEFAULTS = {
   armAfter: 0, // force først aktiv efter så mange sekunder (0 = med det samme)
   honestRuns: 0, // så mange ærlige forsøg (start → nulstil) først
   once: false, // slå force fra efter første forsøg med force
+  performStart: false, // åbn appen på den falske hjemmeskærm
   peekHold: true, // hold fingeren på tallet → se det sidste stop efter Nulstil
   indicator: false, // diskret prik når force er klar
 };

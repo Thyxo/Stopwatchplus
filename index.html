@@ -150,6 +150,26 @@
     <div class="indicator" id="indicator" hidden></div>
   </div>
 
+  <!-- ============ PERFORM: FALSK HJEMMESKÆRM ============ -->
+  <div class="home" id="home" aria-hidden="true">
+    <div class="home-stage" id="homeStage">
+      <div class="home-pages">
+        <div class="home-track" id="homeTrack">
+          <img src="home/page1.webp" alt="" draggable="false" />
+          <img src="home/page2.webp" alt="" draggable="false" />
+          <img src="home/page3.webp" alt="" draggable="false" />
+        </div>
+        <div class="home-press" id="homePress"></div>
+      </div>
+      <div class="home-dots" id="homeDots">
+        <img src="home/dots1.png" alt="" draggable="false" />
+        <img src="home/dots2.png" alt="" draggable="false" />
+        <img src="home/dots3.png" alt="" draggable="false" />
+      </div>
+      <img class="home-dock" src="home/dock.webp" alt="" draggable="false" />
+    </div>
+  </div>
+
   <!-- ============ HEMMELIGT PANEL ============ -->
   <div class="secret" id="secret" hidden>
     <div class="secret-sheet" id="secretSheet">
@@ -185,6 +205,9 @@
 
         <!-- INDSTIL -->
         <section class="pane" data-pane="setup">
+          <div class="group">
+            <button class="cell btn perform" id="performBtn" type="button">Perform – vis hjemmeskærm</button>
+          </div>
           <div class="cur-rt"><span>Rutine: <b id="curRoutine"></b></span><button class="link" id="renameCur" type="button">Omdøb</button></div>
           <div class="seg seg6" data-seg="mode">
             <button data-v="single">Tid</button><button data-v="sequence">Række</button><button data-v="date">Dato</button><button data-v="code">Kode</button><button data-v="card">Kort</button><button data-v="list">Liste</button>
@@ -280,6 +303,7 @@
           <div class="group">
             <label class="cell"><span>Blind (kigger ikke ved stop)</span><input type="checkbox" class="tgl" data-s="blind" /></label>
             <label class="cell"><span>Diskret prik når force er klar</span><input type="checkbox" class="tgl" data-s="indicator" /></label>
+            <label class="cell"><span>Start på hjemmeskærm (perform)</span><input type="checkbox" class="tgl" data-s="performStart" /></label>
             <label class="cell"><span>Peek: hold fingeren på tallet</span><input type="checkbox" class="tgl" data-s="peekHold" /></label>
           </div>
           <div class="group-title">Tilladt synligt spring</div>

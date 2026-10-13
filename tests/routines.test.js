@@ -14,6 +14,7 @@ test('alle standardrutiner giver en gyldig plan', () => {
   assert.equal(s.routines.length, BUILTIN.length);
   for (const r of BUILTIN) {
     assert.ok(selectRoutine(s, r.id), r.id);
+    if (r.id === 'blank') { assert.ok(buildPlan(s).error); continue; } // tom = ingen force
     const plan = buildPlan(s, new Date(2026, 9, 13, 14, 5));
     assert.equal(plan.error, null, `${r.id}: ${plan.error}`);
     assert.ok(plan.stop || plan.laps.length, r.id);
@@ -67,4 +68,19 @@ test('rutiner overlever genindlæsning, og gamle egne rutiner flyttes over', () 
   const g = old.routines.find((r) => r.name === 'Gammel');
   assert.equal(g.snapshot.code.value, '5000');
   assert.equal(g.snapshot.single.value, DEFAULTS.single.value);
+});
+
+test('appen starter på Tom rutine – også for gamle indstillinger (én gang)', () => {
+  const s = fresh();
+  assert.equal(s.routine, 'blank');
+  assert.equal(s.routines[0].id, 'blank');
+  assert.ok(buildPlan(s).error);
+  selectRoutine(s, 'lotto');
+  ensureRoutines(s);
+  assert.equal(s.routine, 'lotto'); // kun første gang
+  const old = mergeSettings(DEFAULTS, { routinesSeeded: true, routines: [], routine: 'x', single: { value: '55' } });
+  delete old.blankStart;
+  ensureRoutines(old);
+  assert.equal(old.routine, 'blank');
+  assert.equal(old.single.value, '');
 });

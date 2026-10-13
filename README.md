@@ -36,7 +36,7 @@ Ingen build-kommando og ingen output-mappe (roden udgives som den er). `vercel.j
 
 ## 2. Panelet
 
-**Åbn:** tryk **5 gange hurtigt** (inden for 2½ sek.) i **øverste højre hjørne**. **Færdig** lukker uden spor.
+**Åbn:** tryk **5 gange hurtigt** (inden for 2½ sek.) i **øverste højre hjørne**. **Færdig** lukker uden spor (tryk på Færdig det første sekund ignoreres, så et ekstra tryk ikke lukker panelet). Appen starter på **Tom rutine** (ingen force), indtil du vælger noget.
 
 Øverst: planen (fx `K♦ er nr. 26 → Stop ––.––,26`), kontakten **Force aktiv** og hvad tilskueren sidst *faktisk* stoppede på. Derunder tre faner:
 
@@ -71,15 +71,30 @@ Blind, diskret prik, hold-peek til/fra, tilladt synligt spring, hvad der sker hv
 
 ---
 
-## 2b. ACAAN med skjult kort-input
+## 2b. ACAAN med perform mode (falsk hjemmeskærm)
 
-1. Stak bunken (fx Mnemonica). Vælg rutinen **ACAAN** og stakken under Indstil → Kort.
-2. Tilskueren nævner et hvilket som helst kort.
-3. **Skjult input:** gå til fanen **Tidtagninger**, og "stil en timer": **timer = kulør** (1 ♣, 2 ♥, 3 ♠, 4 ♦ – CHaSeD) og **min. = værdi** (1 = es … 11 knægt, 12 dame, 13 konge). Sekunderne er ligegyldige. Kortet gemmes, når du går tilbage til Stopur. Eksempel: 7♥ = 2 timer 7 min.
-   (Eller vælg kortet i panelet.)
-4. Tilskueren starter og stopper selv – hundrededelene viser kortets plads (7♥ i Mnemonica = 41). De tæller ned i bunken, og kortet ligger der.
+**Start:** panel → Indstil → **Perform – vis hjemmeskærm** (eller slå *Start på hjemmeskærm* til under Mere, så åbner appen altid der). Skærmen er dine egne skærmbilleder af hjemmeskærmen – den rigtige statuslinje ligger ovenpå.
 
-*Tip:* Med "Kort ovenpå stakken" kan du have fx 3 jokere øverst. Placeringen "Sekunder" (00.41,xx) passer til "stop når du føler, der er gået 40 sekunder" med Blind.
+1. Stak bunken og vælg rutinen **ACAAN** (og stakken under Indstil → Kort).
+2. Tilskueren nævner et kort.
+3. **Side 1 → 2: værdien.** Start swipet på værdiens ikon:
+
+   | Værdi | Ikon (række, kolonne) |
+   |---|---|
+   | 1 (es) | Påmindelser (række 2, kolonne 4) |
+   | 2 · 3 · 4 | Vejr · Duolingo · Apple TV (række 3) |
+   | 5 · 6 · 7 | Snapchat · Kort · Watch (række 4) |
+   | 8 · 9 · 10 | Sundhed · Kalender · Spotify-ikonet (række 5) |
+   | 11 · 12 · 13 (J Q K) | Discord · AirPods · YouTube (række 6) |
+
+4. **Side 2 → 3: kuløren** (CHSD). Start swipet et vilkårligt sted i rækken: **række 3 = ♣**, **række 4 = ♥**, **række 5 = ♠**, **række 6 = ♦**.
+5. **Tryk på Ur** (side 3) – stopuret åbner ud af ikonet med kortet valgt. Tilskueren starter og stopper; hundrededelene viser kortets plads.
+
+Swiper du forkert, så swipe tilbage og om igen – det sidste swipe tæller. Mangler værdi eller kulør, beholdes den del fra det kort, der var valgt før. Panelets log viser "Kort valgt på hjemmeskærmen: 7♥".
+
+**Reserve:** fanen **Tidtagninger** – timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦), min. = værdi (1-13). Eller vælg kortet i panelet.
+
+> Tag nye skærmbilleder, hvis din hjemmeskærm ændrer sig (notifikationstal, nye apps), og læg dem i `home/` (se `src/home.js` for mål).
 
 ---
 
@@ -158,7 +173,7 @@ Start igen: panel → *Force aktiv*.
 
 ## 7. Hvad er testet
 
-`npm test` (Node 18+, ingen afhængigheder) – **37 tests, alle grønne**:
+`npm test` (Node 18+, ingen afhængigheder) – **40 tests, alle grønne**:
 
 **Rutiner:** alle 14 standardrutiner giver en gyldig plan; hver rutine beholder sine egne tal; ny/omdøb/kopi/flyt/slet/gendan; overlever genindlæsning og flytter gamle egne rutiner over.
 

@@ -14,6 +14,11 @@ export const SNAPSHOT_KEYS = ['mode', 'single', 'sequence', 'date', 'code', 'lis
 // input: det ene felt, der vises under rutinen, når den er valgt
 export const BUILTIN = [
   {
+    id: 'blank', name: 'Tom rutine', desc: 'Intet mål – helt almindeligt stopur, indtil du skriver et tal',
+    patch: { mode: 'single', single: { value: '', placement: 'hh' } },
+    input: { path: 'single.value', label: 'Tal (tomt = ingen force)', ph: '', im: 'numeric' },
+  },
+  {
     id: 'hh', name: 'To sidste cifre', desc: 'Stop når som helst – hundrededelene bliver dit tal',
     patch: { mode: 'single', single: { value: '37', placement: 'hh' } },
     input: { path: 'single.value', label: 'Tal (00-99)', ph: '37', im: 'numeric' },
@@ -117,6 +122,14 @@ export function ensureRoutines(settings) {
     }
     settings.custom = [];
     settings.routinesSeeded = true;
+  }
+  // Tom rutine øverst (ældre versioner havde den ikke) – og start på den én gang
+  if (!findRoutine(settings, 'blank')) settings.routines.unshift(builtinRoutine(BUILTIN[0]));
+  if (!settings.blankStart) {
+    settings.blankStart = true;
+    const b = findRoutine(settings, 'blank');
+    deepAssign(settings, clone(b.snapshot));
+    settings.routine = 'blank';
   }
   // nye felter i snapshots fra ældre versioner
   for (const r of settings.routines) r.snapshot = deepAssign(baseSnapshot(), r.snapshot || {});
