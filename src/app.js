@@ -271,7 +271,8 @@ function placePill(animate) {
   const cx = btn.offsetLeft + btn.offsetWidth / 2;
   if (!animate) pill.style.transition = 'none';
   pill.style.width = w + 'px';
-  pill.style.setProperty('--x', cx - w / 2 + 'px');
+  const maxX = tabbar.clientWidth - w - 4; // pillen må ikke gå ud over bjælken
+  pill.style.setProperty('--x', Math.max(4, Math.min(maxX, cx - w / 2)) + 'px');
   if (!animate) { void pill.offsetWidth; pill.style.transition = ''; }
 }
 
@@ -475,9 +476,19 @@ function panic() {
   if (!secret.hidden) syncPanel();
 }
 
-function syncIndicator() {
+// Er force klar til næste stop? (slået til, har et gyldigt mål, ingen ærlige forsøg tilbage)
+function forceState() {
   const plan = buildPlan(settings, new Date());
-  indicator.hidden = !(settings.indicator && settings.active && !plan.error);
+  if (!settings.active) return { armed: false, key: 'off', text: 'FORCE FRA – almindeligt stopur' };
+  if (plan.error) return { armed: false, key: 'empty', text: `INTET MÅL – ${plan.error.toLowerCase()}` };
+  if (honestLeft() > 0) return { armed: false, key: 'wait', text: `VENTER – ${honestLeft()} ærligt forsøg først` };
+  return { armed: true, key: 'on', text: 'FORCE KLAR' };
+}
+function syncIndicator() {
+  const st = forceState();
+  indicator.hidden = !(settings.indicator && st.armed);
+  const timerTab = $('.tab[data-tab="timers"]');
+  if (timerTab) timerTab.classList.toggle('armed', !!(settings.timerHand && st.armed));
 }
 
 // ---------- hemmeligt panel ----------
@@ -553,9 +564,9 @@ function renderPlan() {
     if (cls) d.className = cls;
     box.appendChild(d);
   };
-  if (!settings.active) line('Force er slået FRA – helt almindeligt stopur', 'off');
-  if (plan.error) line(plan.error, 'err');
-  else {
+  const st = forceState();
+  line(st.text, 'badge ' + st.key);
+  if (!plan.error) {
     line(plan.summary);
     const extra = [];
     if (settings.armAfter > 0) extra.push(`først efter ${settings.armAfter} s`);
@@ -591,6 +602,11 @@ function renderLog() {
     const d = document.createElement('div');
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
+    if (e.kind === 'tal') {
+      d.textContent = `${time}  Tal valgt på hjemmeskærmen: ${e.number}`;
+      box.appendChild(d);
+      continue;
+    }
     if (e.kind === 'kort') {
       d.textContent = `${time}  Kort valgt ${e.via === 'hjemmeskærm' ? 'på hjemmeskærmen' : 'i Tidtagninger'}: ${prettyCard(e.card)}`;
       box.appendChild(d);
@@ -850,16 +866,77 @@ $('#runSelftest').addEventListener('click', async () => {
   out.textContent = formatReport(runSelfTest({ runs: 2000, seed: Date.now() % 100000 }));
 });
 
+// ---------- info-ikoner ----------
+const INFO = {
+  routine: 'Den rutine du redigerer lige nu. Alt du ændrer på denne side gemmes i rutinen. Vælg en anden under Rutiner.',
+  mode: 'Hvilken slags mål: Tid (ét tal ved Stop), Række (ét tal pr. Runde), Dato, Kode (fx postnummer), Kort (ACAAN – kortets plads i stakken) eller Liste (én linje pr. tilskuer).',
+  singlePlacement: 'Hvor tallet lander. ,HH = kun hundrededelene (virker altid). SS,HH = sekunder + hundrededele (tilskueren skal stoppe tæt på sekundet, eller brug Blind). MM.SS,HH = hele visningen. Auto vælger ud fra antal cifre.',
+  stopTakes: 'Til: Stop fryser den sidste omgang på næste tal i rækken. Fra: kun Runde-tryk bruger tallene.',
+  offset: 'Antal kort du har lagt oven på stakken (fx jokere). Pladsen tælles så længere nede.',
+  fromBottom: 'Tæl pladsen fra bunden af bunken i stedet for fra toppen.',
+  timerInput: 'Stil en "timer" i fanen Tidtagninger: timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦), min. = værdi (1-13). Kortet gemmes, når du går tilbage til Stopur.',
+  cardPlacement: 'Hundrededele: 7♥ som nr. 41 giver fx 00.08,41 – virker altid. Sekunder: 00.41,xx – kræver at tilskueren stopper tæt på, eller Blind.',
+  listAdvance: 'Når en tilskuer er færdig (der er trykket Nulstil efter et ramt stop), bruges næste linje til den næste tilskuer.',
+  activation: 'Hvornår force må virke. Alt før er et helt ægte stopur.',
+  armAfter: 'Stop eller Runde, før uret har kørt så mange sekunder, er ærlige. Godt hvis tilskueren kommer til at trykke ved et uheld lige efter Start.',
+  honestRuns: 'De første forsøg (Start → Nulstil) er ægte. Tælles fra du lukker panelet eller åbner perform. "Prøv lige uret først" – næste forsøg rammer.',
+  once: 'Efter et forsøg hvor force har ramt, slås force fra, når der trykkes Nulstil. Bagefter kan alle undersøge appen.',
+  afterHit: 'Hvis tilskueren starter og stopper igen i samme forsøg: "Ram igen" lander igen på målet (tallet går aldrig baglæns). "Ærlige" gør resten af forsøget helt ægte, indtil Nulstil.',
+  blind: 'Tilskueren kigger ikke på skærmen, når de stopper. Så vises hele målet – også sekunder og minutter – uanset hvornår der stoppes.',
+  timerHand: 'Viseren på Tidtagninger-ikonet nederst peger på kl. 9, når force er klar til næste stop. Ellers står den som normalt.',
+  indicator: 'En næsten usynlig mørkegrå prik øverst i midten, når force er klar.',
+  performStart: 'Appen åbner på den falske hjemmeskærm, så du kan taste kort eller tal ind, før stopuret vises.',
+  peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
+  jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
+  miss: 'Hvis målet ikke kan nås usynligt (fx stoppede de langt fra sekundet): ram i det mindste hundrededelene, eller vis den ægte tid.',
+  onReset: 'Talrække: start forfra efter Nulstil, eller fortsæt med næste tal (fx ét Lotto-tal pr. tilskuer).',
+  log: 'Hvad tilskueren faktisk stoppede på, og hvad der blev vist. ✓ ramt, ½ kun hundrededele, – ærligt.',
+  selftest: 'Simulerer 2.000 tilskuere på telefonen og tjekker at intet springer synligt.',
+};
+function addInfoButtons(root) {
+  $$('[data-info]', root).forEach((el) => {
+    if (el.querySelector(':scope > .info, :scope > span > .info')) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'info';
+    b.textContent = 'i';
+    b.setAttribute('aria-label', 'Forklaring');
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = el.nextElementSibling;
+      if (next && next.classList.contains('info-text')) { next.remove(); return; }
+      const t = document.createElement('div');
+      t.className = 'info-text';
+      t.textContent = INFO[el.dataset.info] || '';
+      el.after(t);
+    });
+    const label = el.tagName === 'BUTTON' ? null : el.querySelector(':scope > span');
+    if (label) label.appendChild(b); else if (el.tagName === 'BUTTON') el.after(b); else el.appendChild(b);
+  });
+}
+addInfoButtons(secret);
+
 // ---------- perform: falsk hjemmeskærm med kort-input ----------
 const perform = initHome({
   app,
-  onLaunch({ value, suit }) {
-    if (value || suit) {
+  onLaunch({ value, suit, number }) {
+    if (settings.mode !== 'card' && number !== null) {
+      // Tal fra hjemmeskærmen → dit tal i Tid/Kode/Række
+      if (settings.mode === 'single') settings.single.value = number;
+      else if (settings.mode === 'code') settings.code.value = number;
+      else if (settings.mode === 'sequence') settings.sequence.text = number;
+      storeActive(settings);
+      saveSettings(settings);
+      engine.record({ kind: 'tal', result: 'natural', natural: null, shown: null, number });
+    } else if (settings.mode === 'card' && (value || suit)) {
       settings.card.card = cardFromInput(value, suit, settings.card.card);
       storeActive(settings);
       saveSettings(settings);
       engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card: settings.card.card, via: 'hjemmeskærm' });
     }
+    settings.active = true;
+    saveSettings(settings);
     runsDone = 0;
     setTab('stopwatch', false);
     syncIndicator();
@@ -867,6 +944,9 @@ const perform = initHome({
 });
 $('#performBtn').addEventListener('click', () => {
   if (performance.now() - openedAt < 400) return;
+  settings.active = true; // perform betyder altid force til
+  storeActive(settings);
+  saveSettings(settings);
   closeSecret();
   setTimeout(() => perform.enter(), 230);
 });

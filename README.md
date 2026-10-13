@@ -38,7 +38,7 @@ Ingen build-kommando og ingen output-mappe (roden udgives som den er). `vercel.j
 
 **Åbn:** tryk **5 gange hurtigt** (inden for 2½ sek.) i **øverste højre hjørne**. **Færdig** lukker uden spor (tryk på Færdig det første sekund ignoreres, så et ekstra tryk ikke lukker panelet). Appen starter på **Tom rutine** (ingen force), indtil du vælger noget.
 
-Øverst: planen (fx `K♦ er nr. 26 → Stop ––.––,26`), kontakten **Force aktiv** og hvad tilskueren sidst *faktisk* stoppede på. Derunder tre faner:
+Øverst et tydeligt mærke: **FORCE KLAR** (grøn), **FORCE FRA**, **INTET MÅL** eller **VENTER** (ærlige forsøg tilbage) – derunder planen (fx `K♦ er nr. 26 → Stop ––.––,26`), kontakten **Force aktiv** og hvad tilskueren sidst *faktisk* stoppede på. Derunder tre faner:
 
 ### Indstil (åbner altid her)
 Viser hvilken rutine du redigerer. **Alt du ændrer her, gemmes i den valgte rutine.**
@@ -58,6 +58,12 @@ Viser hvilken rutine du redigerer. **Alt du ændrer her, gemmes i den valgte rut
 | **Force først efter** 1/3/5/10 s | Stop eller runder før tiden er helt ærlige (og bruger ikke tal fra talrækken). Godt mod "jeg trykkede ved et uheld". |
 | **Ærlige forsøg først** 1-3 | De første forsøg (Start → Nulstil) er ægte. Tælles fra du lukker panelet. "Prøv lige uret først" → næste forsøg rammer. |
 | **Kun én gang** | Efter et forsøg med force slås force fra, når der trykkes Nulstil. Bagefter kan alle undersøge appen. |
+
+**Info-ikoner:** tryk på ⓘ ved en indstilling for at få den forklaret.
+
+**Diskret "force klar"-indikator:** viseren på **Tidtagninger-ikonet** i fanebjælken peger på **kl. 9**, når force er klar til næste stop (ellers står den som normalt). Kan slås fra under Mere.
+
+**Gentagne stop:** starter og stopper tilskueren igen og igen (fordi de ikke var tilfredse), går tallet aldrig baglæns eller står stille – det skal altid være steget med mindst halvdelen af den ægte tid. Under *Nye stop i samme forsøg* vælger du **Ram igen** (hvert stop lander på målet – så er det sidste stop altid rigtigt) eller **Ærlige** (efter første ramte stop er resten af forsøget ægte, indtil Nulstil).
 
 ### Rutiner
 14 færdige rutiner, **hver med sine egne tal**: To sidste cifre · Ærlig prøve først · Ram sekundet · Blind stop · ACAAN · Lotto-række · Telefonnummer · PIN-kode · I morgens dato · Klokken lige nu · Fødselsdag · Fødselsår · Postnummer · Bogtest.
@@ -88,9 +94,11 @@ Blind, diskret prik, hold-peek til/fra, tilladt synligt spring, hvad der sker hv
    | 11 · 12 · 13 (J Q K) | Discord · AirPods · YouTube (række 6) |
 
 4. **Side 2 → 3: kuløren** (CHSD). Start swipet et vilkårligt sted i rækken: **række 3 = ♣**, **række 4 = ♥**, **række 5 = ♠**, **række 6 = ♦**.
-5. **Tryk på Ur** (side 3) – stopuret åbner ud af ikonet med kortet valgt. Tilskueren starter og stopper; hundrededelene viser kortets plads.
+5. **Tryk på Ur** (side 3) – **force slås altid til** (også hvis den var slået fra) – stopuret åbner ud af ikonet med kortet valgt. Tilskueren starter og stopper; hundrededelene viser kortets plads.
 
 Swiper du forkert, så swipe tilbage og om igen – det sidste swipe tæller. Mangler værdi eller kulør, beholdes den del fra det kort, der var valgt før. Panelets log viser "Kort valgt på hjemmeskærmen: 7♥".
+
+**Tal i stedet for kort:** I alle andre tilstande (Tid, Kode, Række) giver de to swipes et **tal**, som i Notes-appen: **0** = række 3, kolonne 3 (Duolingo); **1-9** = 3×3 i række 4-6, kolonne 2-4. Swipe 1 = første ciffer, swipe 2 = andet ciffer (kun ét swipe = ét ciffer). Fx 3 og 7 → dit tal bliver 37.
 
 **Reserve:** fanen **Tidtagninger** – timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦), min. = værdi (1-13). Eller vælg kortet i panelet.
 
@@ -173,7 +181,7 @@ Start igen: panel → *Force aktiv*.
 
 ## 7. Hvad er testet
 
-`npm test` (Node 18+, ingen afhængigheder) – **40 tests, alle grønne**:
+`npm test` (Node 18+, ingen afhængigheder) – **43 tests, alle grønne**:
 
 **Rutiner:** alle 14 standardrutiner giver en gyldig plan; hver rutine beholder sine egne tal; ny/omdøb/kopi/flyt/slet/gendan; overlever genindlæsning og flytter gamle egne rutiner over.
 

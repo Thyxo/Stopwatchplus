@@ -17,3 +17,12 @@ test('kort ud fra input – mangler en del, bruges det gamle kort', () => {
   assert.equal(cardFromInput(11, null, '5C'), 'JC');
   assert.equal(cardFromInput(null, 'H', '10S'), '10H');
 });
+
+test('tal-input som i Notes-appen', async () => {
+  const { DIGIT_CELLS, numberFromDigits } = await import('../src/home.js');
+  assert.deepEqual(Object.values(DIGIT_CELLS).sort(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(numberFromDigits([3, 7]), '37');
+  assert.equal(numberFromDigits([0, 5]), '05');
+  assert.equal(numberFromDigits([4, null]), '4');
+  assert.equal(numberFromDigits([null, null]), null);
+});

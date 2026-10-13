@@ -23,9 +23,11 @@ export const DEFAULTS = {
   armAfter: 0, // force først aktiv efter så mange sekunder (0 = med det samme)
   honestRuns: 0, // så mange ærlige forsøg (start → nulstil) først
   once: false, // slå force fra efter første forsøg med force
+  afterHit: 'again', // nye stop i samme forsøg: 'again' = ram igen, 'honest' = ærlige
   performStart: false, // åbn appen på den falske hjemmeskærm
   peekHold: true, // hold fingeren på tallet → se det sidste stop efter Nulstil
   indicator: false, // diskret prik når force er klar
+  timerHand: true, // Tidtagninger-ikonets viser peger på kl. 9, når force er klar
 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -64,6 +66,7 @@ export function engineOptions(s) {
     miss: s.miss === 'none' ? 'none' : 'hh',
     onReset: s.onReset === 'continue' ? 'continue' : 'restart',
     armAfter: Math.max(0, Number(s.armAfter) || 0),
+    afterHit: s.afterHit === 'honest' ? 'honest' : 'again',
   };
 }
 

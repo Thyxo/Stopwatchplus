@@ -178,9 +178,13 @@ export class ForceEngine {
   }
 
   // Stop trykket. Returnerer { total } i cs – det tal, uret fryser på.
-  decideStop({ dcs, sumLaps, analog = false }) {
+  // minCs: laveste tilladte tal (aldrig under det tilskueren så, da de trykkede Start igen)
+  decideStop({ dcs, sumLaps, analog = false, minCs = 0 }) {
     const ccs = dcs - sumLaps;
     const { o, plan } = this.activePlan(dcs);
+    if (plan && o.afterHit === 'honest' && this.hits > 0) {
+      return this.finish('stop', { total: dcs, result: 'natural', natural: dcs }); // ærlig resten af forsøget
+    }
     let pat = null;
     let target = 'total';
     if (plan && plan.stop) pat = plan.stop;
@@ -190,11 +194,12 @@ export class ForceEngine {
     }
     if (!pat || isFree(pat)) return this.finish('stop', { total: dcs, result: 'natural', natural: dcs });
     const search = target === 'total' ? searchStopTotal : searchStopLap;
-    let best = search(pat, dcs, sumLaps, analog, o);
+    const lo = Math.max(minCs, 0);
+    let best = search(pat, dcs, sumLaps, analog, o, lo);
     let result = 'hit';
     if (!best || (best.cost >= VISIBLE && !o.blind)) {
       const part = o.miss === 'none' ? null : hhOnly(pat);
-      best = part && !isFree(part) ? search(part, dcs, sumLaps, analog, o) : null;
+      best = part && !isFree(part) ? search(part, dcs, sumLaps, analog, o, lo) : null;
       result = best ? 'partial' : 'natural';
       if (best && best.cost >= VISIBLE) { best = null; result = 'natural'; }
     }
@@ -242,13 +247,14 @@ function searchLap(pat, dcs, ccs, analog, o) {
   return best;
 }
 
-function searchStopTotal(pat, dcs, sumLaps, analog, o) {
+function searchStopTotal(pat, dcs, sumLaps, analog, o, minCs = 0) {
   const ccs = dcs - sumLaps;
-  let cands = candidatesIn(pat, Math.max(sumLaps, dcs - SEARCH), dcs + SEARCH);
-  if (o.blind || !cands.length) cands = cands.concat(nearestCandidates(pat, dcs, sumLaps));
+  const lo = Math.max(sumLaps, minCs);
+  let cands = candidatesIn(pat, Math.max(lo, dcs - SEARCH), dcs + SEARCH);
+  if (o.blind || !cands.length) cands = cands.concat(nearestCandidates(pat, dcs, lo));
   let best = null;
   for (const f of cands) {
-    if (f < sumLaps) continue;
+    if (f < lo) continue;
     let cost = visCost(dcs, f, lapOpts(o, { running: false, analog }));
     if (sumLaps > 0) cost += 0.5 * visCost(ccs, f - sumLaps, lapOpts(o, { running: false }));
     if (f === 0) cost += 5;
@@ -257,14 +263,14 @@ function searchStopTotal(pat, dcs, sumLaps, analog, o) {
   return best;
 }
 
-function searchStopLap(pat, dcs, sumLaps, analog, o) {
+function searchStopLap(pat, dcs, sumLaps, analog, o, minCs = 0) {
   const ccs = dcs - sumLaps;
   let cands = candidatesIn(pat, ccs - SEARCH, ccs + SEARCH);
   if (o.blind || !cands.length) cands = cands.concat(nearestCandidates(pat, ccs, 0));
   let best = null;
   for (const L of cands) {
     const f = dcs + (L - ccs);
-    if (f < 0 || L < 0) continue;
+    if (f < 0 || L < 0 || f < minCs) continue;
     let cost = visCost(dcs, f, lapOpts(o, { running: false, analog }));
     if (sumLaps > 0) cost += 0.7 * visCost(ccs, L, lapOpts(o, { running: false }));
     if (L < 5) cost += 2;
@@ -341,6 +347,8 @@ export class Stopwatch {
       this.laps = [];
       this.offBase = 0;
     }
+    // Tallet, tilskueren så ved Start – næste stop må aldrig lande under (eller på) det
+    this.resumeCs = this.state === 'stopped' ? msToCs(this.landing ? this.landing.to : this.frozen) : 0;
     this.state = 'running';
     this.runAt = t;
     this.offT = t;
@@ -352,8 +360,11 @@ export class Stopwatch {
     this.real += t - this.runAt;
     const dcs = msToCs(x);
     const sumLaps = this.sumLaps();
+    // Ved hurtigt Start/Stop igen: tallet skal være steget med mindst halvdelen af den ægte tid
+    const rc = this.resumeCs || 0;
+    const minCs = rc > 0 ? rc + Math.max(1, Math.floor((dcs - rc) / 2)) : 1;
     const dec = this.engine
-      ? this.engine.decideStop({ dcs, sumLaps, analog })
+      ? this.engine.decideStop({ dcs, sumLaps, analog, minCs })
       : { total: dcs, result: 'natural' };
     const frozen = dec.total === dcs ? x : dec.total * 10 + 5; // midt i hundrededelen
     this.state = 'stopped';

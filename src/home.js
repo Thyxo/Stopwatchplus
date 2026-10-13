@@ -6,6 +6,8 @@
 //      (kolonne 2-4, fra toppen og ned).
 //  Swipe side 2 → 3: rækken under fingeren er kuløren (CHSD):
 //      række 3 = ♣ klør, række 4 = ♥ hjerter, række 5 = ♠ spar, række 6 = ♦ ruder.
+//  I alle andre tilstande end Kort er det i stedet tal (som i Notes-appen): swipe 1 = første ciffer,
+//  swipe 2 = andet ciffer (0 = række 3 kol. 3, 1-9 = 3×3 i række 4-6, kol. 2-4).
 //  Tryk på Ur på side 3 → stopuret "åbner" ud af ikonet med kortet valgt.
 
 const HOME_W = 1179;
@@ -26,6 +28,22 @@ export const VALUE_CELLS = {
   '4,1': 8, '4,2': 9, '4,3': 10,
   '5,1': 11, '5,2': 12, '5,3': 13,
 };
+// Tal-input (alle andre tilstande end Kort) – som i Notes-appen, ens på side 1 og 2:
+// 0 = række 3 kolonne 3, 1-9 = 3×3 nederst (række 4-6, kolonne 2-4)
+export const DIGIT_CELLS = {
+  '2,2': 0,
+  '3,1': 1, '3,2': 2, '3,3': 3,
+  '4,1': 4, '4,2': 5, '4,3': 6,
+  '5,1': 7, '5,2': 8, '5,3': 9,
+};
+// To cifre → tekst; kun ét swipe → ét ciffer
+export function numberFromDigits(d) {
+  const [a, b] = d;
+  if (a !== null && a !== undefined && b !== null && b !== undefined) return `${a}${b}`;
+  if (a !== null && a !== undefined) return `${a}`;
+  if (b !== null && b !== undefined) return `${b}`;
+  return null;
+}
 // række → kulør på side 2 (CHSD)
 export const SUIT_ROWS = { 2: 'C', 3: 'H', 4: 'S', 5: 'D' };
 const UR_CELL = { page: 2, row: 1, col: 2 };
@@ -52,6 +70,7 @@ export function initHome({ app, onLaunch }) {
 
   let page = 0;
   let input = [null, null]; // [værdi, kulør]
+  let digits = [null, null]; // tal-input
   let drag = null;
   let offset = 0;
   let anim = null;
@@ -215,8 +234,10 @@ export function initHome({ app, onLaunch }) {
       target = Math.max(0, Math.min(2, Math.max(d.startPage - 1, Math.min(d.startPage + 1, target))));
       // Swipe fremad registrerer ikonet/rækken under fingeren, hvor swipet startede
       if (target === d.startPage + 1 && d.cell) {
-        if (d.startPage === 0) input[0] = VALUE_CELLS[`${d.cell.row},${d.cell.col}`] ?? input[0];
+        const key = `${d.cell.row},${d.cell.col}`;
+        if (d.startPage === 0) input[0] = VALUE_CELLS[key] ?? input[0];
         if (d.startPage === 1) input[1] = SUIT_ROWS[d.cell.row] ?? input[1];
+        if (d.startPage < 2 && DIGIT_CELLS[key] !== undefined) digits[d.startPage] = DIGIT_CELLS[key];
       }
       page = target;
       setDot(page);
@@ -247,6 +268,7 @@ export function initHome({ app, onLaunch }) {
   function enter() {
     page = 0;
     input = [null, null];
+    digits = [null, null];
     drag = null;
     stage.style.transition = 'none';
     stage.style.transform = '';
@@ -264,7 +286,7 @@ export function initHome({ app, onLaunch }) {
   }
 
   function launch() {
-    onLaunch({ value: input[0], suit: input[1] });
+    onLaunch({ value: input[0], suit: input[1], number: numberFromDigits(digits) });
     const W = app.offsetWidth;
     const H = app.offsetHeight;
     const k = scale();

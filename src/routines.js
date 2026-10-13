@@ -9,7 +9,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 
 // Felter en rutine gemmer
 export const SNAPSHOT_KEYS = ['mode', 'single', 'sequence', 'date', 'code', 'list', 'card',
-  'blind', 'jumpTol', 'miss', 'onReset', 'armAfter', 'honestRuns', 'once'];
+  'blind', 'jumpTol', 'miss', 'onReset', 'armAfter', 'honestRuns', 'once', 'afterHit'];
 
 // input: det ene felt, der vises under rutinen, når den er valgt
 export const BUILTIN = [

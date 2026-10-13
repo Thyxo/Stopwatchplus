@@ -219,3 +219,29 @@ test('gem og gendan: uret kører videre efter genstart af appen', () => {
   r2.wait(1234); r2.lap();
   assert.equal(r2.sw.laps[1] % 100, 22);
 });
+
+test('hurtige Start/Stop i træk: tallet går aldrig tilbage eller står stille', () => {
+  const r = rig(single('37'));
+  r.start();
+  let last = 0;
+  for (const ms of [5120, 150, 90, 400, 60, 1300, 30]) {
+    r.wait(ms);
+    r.stop();
+    const v = r.sw.totalCs(r.t + 1000);
+    assert.ok(v > last, `${formatCs(v)} skal være større end ${formatCs(last)}`);
+    last = v;
+    r.wait(80);
+    r.start();
+  }
+});
+
+test('efter ramt stop: ærlig resten af forsøget (valgfrit)', () => {
+  const r = rig({ ...single('37'), afterHit: 'honest' });
+  r.start(); r.wait(5120); r.stop();
+  assert.equal(r.show(), '00.05,37');
+  r.start(); r.wait(2110); r.stop();
+  assert.equal(r.engine.log[0].result, 'natural'); // ærligt stop
+  assert.notEqual(r.show().slice(-2), '37');
+  r.sw.reset(); r.start(); r.wait(3210); r.stop();
+  assert.equal(r.show(), '00.03,37'); // nyt forsøg rammer igen
+});
