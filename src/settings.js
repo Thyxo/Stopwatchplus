@@ -4,8 +4,10 @@ export const SETTINGS_KEY = 'ur-stopur-indstillinger-v1';
 
 export const DEFAULTS = {
   active: true,
+  routine: 'hh', // valgt rutine ('' = egen opsætning)
+  custom: [], // egne gemte rutiner
   mode: 'single', // single | sequence | date | code | list
-  single: { value: '37', placement: 'auto' }, // auto | hh | sshh | mmsshh
+  single: { value: '37', placement: 'hh' }, // auto | hh | sshh | mmsshh
   sequence: { text: '05 12 17 23 28 31 36', per: 2, stopTakes: true },
   date: { which: 'tomorrow', custom: '', placement: 'laps', stopTakes: true }, // laps | sshh | mmsshh
   code: { value: '2100', placement: 'sshh', stopTakes: true }, // sshh | mmss | hh | laps

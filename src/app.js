@@ -4,6 +4,7 @@ import { buildPlan, listLines } from './targets.js';
 import { loadSettings, saveSettings, engineOptions } from './settings.js';
 import { formatCs, msToCs } from './format.js';
 import { buildDial } from './dial.js';
+import { ROUTINES, applyRoutine, snapshotRoutine } from './routines.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -243,29 +244,82 @@ function setPage(i) {
 
 // ---------- faner ----------
 const pill = $('#tabPill');
+const tabbar = $('#tabbar');
+const tabBtns = $$('.tab');
+const pillWidth = (btn) => Math.max(btn.querySelector('span').getBoundingClientRect().width, 22.6) + 50;
+
 function placePill(animate) {
   const btn = $(`.tab[data-tab="${tab}"]`);
   if (!btn) return;
-  const label = btn.querySelector('span');
-  const w = Math.max(label.getBoundingClientRect().width, 22.6) + 50;
+  const w = pillWidth(btn);
   const cx = btn.offsetLeft + btn.offsetWidth / 2;
   if (!animate) pill.style.transition = 'none';
   pill.style.width = w + 'px';
-  pill.style.transform = `translateX(${cx - w / 2}px)`;
+  pill.style.setProperty('--x', cx - w / 2 + 'px');
   if (!animate) { void pill.offsetWidth; pill.style.transition = ''; }
 }
 
 function setTab(name, animate = true) {
   tab = name;
   app.dataset.tab = name;
-  $$('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
+  tabBtns.forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
   $$('.screen').forEach((s) => { s.hidden = s.dataset.screen !== name; });
   placePill(animate);
   if (name === 'stopwatch') { setPage(page); kick(); }
   if (name === 'world') tickWorld();
   saveState();
 }
-$$('.tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+// Liquid Glass: tryk gør bjælken lidt større og pillen til en glaslinse,
+// som følger fingeren, hvis man trækker – og lander på nærmeste fane.
+function nearestTab(clientX) {
+  let best = tabBtns[0];
+  let bd = Infinity;
+  for (const b of tabBtns) {
+    const r = b.getBoundingClientRect();
+    const d = Math.abs(clientX - (r.left + r.width / 2));
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+let drag = null;
+function moveLens(clientX) {
+  const r = tabbar.getBoundingClientRect();
+  const w = parseFloat(pill.style.width) || 82;
+  const local = Math.min(Math.max(clientX - r.left, w / 2 + 4), r.width - w / 2 - 4);
+  pill.style.setProperty('--x', local - w / 2 + 'px');
+  const near = nearestTab(clientX);
+  tabBtns.forEach((b) => b.classList.toggle('on', b === near));
+}
+tabbar.addEventListener('pointerdown', (e) => {
+  if (e.button > 0) return;
+  drag = { id: e.pointerId, x0: e.clientX, moved: false };
+  try { tabbar.setPointerCapture(e.pointerId); } catch { /* ignorer */ }
+  tabbar.classList.add('press');
+  pill.classList.add('lens');
+});
+tabbar.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved && Math.abs(e.clientX - drag.x0) < 6) return;
+  drag.moved = true;
+  pill.classList.add('drag');
+  pill.style.width = pillWidth(nearestTab(e.clientX)) + 'px';
+  moveLens(e.clientX);
+});
+function endDrag(e, cancel) {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag = null;
+  pill.classList.remove('drag');
+  const target = cancel ? $(`.tab[data-tab="${tab}"]`) : nearestTab(e.clientX);
+  setTab(target.dataset.tab);
+  setTimeout(() => {
+    tabbar.classList.remove('press');
+    pill.classList.remove('lens');
+  }, 260);
+}
+tabbar.addEventListener('pointerup', (e) => endDrag(e, false));
+tabbar.addEventListener('pointercancel', (e) => endDrag(e, true));
+tabBtns.forEach((b) => b.addEventListener('click', (e) => { if (e.detail === 0) setTab(b.dataset.tab); })); // tastatur
 
 function tickWorld() {
   const d = new Date();
@@ -378,6 +432,8 @@ function syncPanel() {
   });
   renderPlan();
   renderLog();
+  renderRoutines();
+  showPane(ptab);
   measureSafeTop();
   const st = document.createElement('div');
   st.style.cssText = 'position:fixed;top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom)';
@@ -404,6 +460,10 @@ function renderPlan() {
     if (plan.laps.length) line(`Næste runde: nr. ${engine.lapIndex + 1} af ${plan.laps.length}`, 'off');
     if (settings.mode === 'date' && plan.dateDigits) line(`Dato: ${plan.dateDigits.replace(/(\d\d)(\d\d)(\d\d)/, '$1-$2-$3')}`, 'off');
   }
+  const last = engine.log.find((e) => e.kind !== 'panik');
+  $('#peekLine').textContent = last
+    ? `Sidst: ${last.kind === 'lap' ? `runde ${last.index + 1}` : 'stop'} ægte ${formatCs(last.natural)} → vist ${formatCs(last.shown)}`
+    : '';
   if (settings.mode === 'list') {
     const n = listLines(settings.list.text).length;
     $('#listPos').textContent = n ? `${((settings.list.index | 0) % n) + 1}/${n}` : '0/0';
@@ -439,9 +499,13 @@ function renderLog() {
   }
 }
 
+// Ændringer under "Indstil" betyder egen opsætning (ingen valgt rutine)
+const touchSetup = (el) => { if (el.closest('[data-pane="setup"]')) settings.routine = ''; };
+
 secret.addEventListener('input', (e) => {
   const el = e.target.closest('[data-s]');
   if (!el) return;
+  touchSetup(el);
   setPath(el.dataset.s, el.type === 'checkbox' ? el.checked : el.value);
   saveSettings(settings);
   renderPlan();
@@ -450,6 +514,7 @@ secret.addEventListener('input', (e) => {
 secret.addEventListener('change', (e) => {
   const el = e.target.closest('[data-s]');
   if (!el) return;
+  touchSetup(el);
   setPath(el.dataset.s, el.type === 'checkbox' ? el.checked : el.value);
   saveSettings(settings);
   syncPanel();
@@ -457,12 +522,109 @@ secret.addEventListener('change', (e) => {
 });
 $$('[data-seg] button', secret).forEach((b) => b.addEventListener('click', () => {
   const path = b.closest('[data-seg]').dataset.seg;
+  touchSetup(b);
   const old = getPath(path);
   setPath(path, typeof old === 'number' ? Number(b.dataset.v) : b.dataset.v);
   saveSettings(settings);
   syncPanel();
   syncIndicator();
 }));
+// ---------- faner i panelet + rutiner ----------
+let ptab = 'routines';
+function showPane(name) {
+  ptab = name;
+  $$('#ptabs button').forEach((b) => b.classList.toggle('on', b.dataset.p === name));
+  $$('.pane', secret).forEach((p) => { p.hidden = p.dataset.pane !== name; });
+}
+$$('#ptabs button').forEach((b) => b.addEventListener('click', () => {
+  showPane(b.dataset.p);
+  $('#sheetScroll').scrollTop = 0;
+  syncPanel();
+}));
+
+function routineRow(r, custom) {
+  const on = settings.routine === r.id;
+  const wrap = document.createElement('div');
+  wrap.className = 'rt' + (on ? ' on' : '');
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'rt-row';
+  row.dataset.rt = r.id;
+  const txt = document.createElement('span');
+  txt.className = 'rt-text';
+  const b = document.createElement('b');
+  b.textContent = r.name;
+  const sm = document.createElement('small');
+  sm.textContent = custom ? 'Egen rutine' : r.desc;
+  txt.append(b, sm);
+  const chk = document.createElement('span');
+  chk.className = 'rt-check';
+  chk.textContent = on ? '✓' : '';
+  row.append(txt, chk);
+  wrap.appendChild(row);
+  if (custom) {
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'rt-del';
+    del.textContent = 'Slet';
+    del.addEventListener('click', () => {
+      settings.custom = settings.custom.filter((x) => x.id !== r.id);
+      if (settings.routine === r.id) settings.routine = '';
+      saveSettings(settings);
+      syncPanel();
+    });
+    wrap.appendChild(del);
+  }
+  if (on && r.input) {
+    const lab = document.createElement('label');
+    lab.className = 'rt-input';
+    const sp = document.createElement('span');
+    sp.textContent = r.input.label;
+    const inp = document.createElement(r.input.textarea ? 'textarea' : 'input');
+    inp.className = 'inp wide';
+    inp.dataset.s = r.input.path;
+    inp.setAttribute('inputmode', r.input.im || 'decimal');
+    inp.setAttribute('autocomplete', 'off');
+    inp.placeholder = r.input.ph || '';
+    if (r.input.textarea) inp.rows = 3;
+    inp.value = getPath(r.input.path) ?? '';
+    lab.append(sp, inp);
+    wrap.appendChild(lab);
+  }
+  row.addEventListener('click', () => {
+    applyRoutine(settings, r.id);
+    saveSettings(settings);
+    syncPanel();
+    syncIndicator();
+  });
+  return wrap;
+}
+
+function renderRoutines() {
+  const list = $('#rtList');
+  const own = $('#rtCustom');
+  if (secret.contains(document.activeElement) && document.activeElement.closest('.rt-input')) return;
+  list.textContent = '';
+  own.textContent = '';
+  ROUTINES.forEach((r) => list.appendChild(routineRow(r, false)));
+  (settings.custom || []).forEach((c) => own.appendChild(routineRow(c, true)));
+  if (!(settings.custom || []).length) {
+    const d = document.createElement('div');
+    d.className = 'cell dim';
+    d.textContent = 'Ingen endnu – gem fra "Indstil"';
+    own.appendChild(d);
+  }
+}
+
+$('#saveRoutine').addEventListener('click', () => {
+  const name = prompt('Navn på rutinen', '');
+  if (!name || !name.trim()) return;
+  snapshotRoutine(settings, name.trim());
+  saveSettings(settings);
+  showPane('routines');
+  syncPanel();
+});
+
 const stepList = (d) => {
   const n = listLines(settings.list.text).length || 1;
   settings.list.index = ((((settings.list.index | 0) + d) % n) + n) % n;

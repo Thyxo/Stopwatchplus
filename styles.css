@@ -156,7 +156,7 @@ button {
   height: 84px;
   border-radius: 50%;
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 370;
   letter-spacing: -0.2px;
   display: flex;
   align-items: center;
@@ -234,15 +234,28 @@ button {
   bottom: max(calc(var(--safe-bottom) - 12.3px), 10px);
   height: 62px;
   border-radius: 31px;
-  background: var(--tab-bg);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .095), 0 6px 24px rgba(0, 0, 0, .6);
+  /* Liquid Glass: let gennemsigtig, sløret baggrund + lys kant øverst */
+  background: rgba(26, 26, 26, .74);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, .16),
+    inset 0 -0.5px 0.5px rgba(255, 255, 255, .06),
+    inset 0 0 0 0.75px rgba(255, 255, 255, .09),
+    0 8px 28px rgba(0, 0, 0, .55);
   display: flex;
   justify-content: space-between;
   padding: 0 24.5px;
   z-index: 5;
+  touch-action: none;
+  transition: transform .35s cubic-bezier(.3, 1.4, .5, 1), background-color .3s;
 }
+.tabbar.press { transform: scale(1.035); background-color: rgba(44, 44, 44, .8); transition: transform .25s cubic-bezier(.3, 1.4, .5, 1), background-color .2s; }
 
 .tab-pill {
+  --x: 0px;
+  --sx: 1;
+  --sy: 1;
   position: absolute;
   top: 4px;
   left: 0;
@@ -250,12 +263,32 @@ button {
   width: 82px;
   border-radius: 27px;
   background: var(--tab-pill);
-  transition: transform .42s cubic-bezier(.3, 1.25, .45, 1), width .42s cubic-bezier(.3, 1.25, .45, 1);
+  transform: translateX(var(--x)) scale(var(--sx), var(--sy));
+  transition: transform .5s cubic-bezier(.25, 1.35, .4, 1), width .5s cubic-bezier(.25, 1.35, .4, 1), background-color .25s, box-shadow .25s;
   will-change: transform;
+  pointer-events: none;
 }
+/* linsen mens man trykker/trækker – som glasboblen i iOS 26 */
+.tab-pill.lens {
+  --sx: 1.24;
+  --sy: 1.3;
+  z-index: 3;
+  background: rgba(255, 255, 255, .045);
+  -webkit-backdrop-filter: brightness(1.22) saturate(1.2);
+  backdrop-filter: brightness(1.22) saturate(1.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .34),
+    inset 0 2px 5px rgba(255, 255, 255, .28),
+    inset 0 -3px 7px rgba(255, 255, 255, .12),
+    inset 4px 0 8px rgba(255, 150, 60, .16),
+    inset -4px 0 8px rgba(80, 150, 255, .16),
+    0 6px 20px rgba(0, 0, 0, .45);
+}
+.tab-pill.drag { transition: width .3s, background-color .25s, box-shadow .25s; }
 
 .tab {
   position: relative;
+  z-index: 1;
   height: 62px;
   display: flex;
   flex-direction: column;
@@ -467,17 +500,50 @@ button {
   padding: 0 16px calc(40px + var(--safe-bottom));
 }
 
-.plan {
-  margin: 2px 0 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
+.status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 12px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 12px;
   background: #2c2c2e;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.35;
 }
+.status-text { flex: 1; min-width: 0; }
+.plan { font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .plan .err { color: var(--stop); }
-.plan .off { color: #8e8e93; }
+.plan .off { color: #8e8e93; font-size: 13px; }
+.peek { font-size: 12px; color: #8e8e93; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.peek:empty { display: none; }
+.ptabs { margin: 0 16px 12px; }
+.pane { padding-top: 2px; }
+
+.rt { position: relative; border-bottom: 1px solid #3a3a3c; }
+.rt:last-child { border-bottom: 0; }
+.rt-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+}
+.rt-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rt-text b { font-size: 17px; font-weight: 500; }
+.rt-text small { font-size: 13px; color: #8e8e93; }
+.rt-check { width: 20px; color: var(--orange); font-weight: 700; font-size: 17px; text-align: right; }
+.rt.on .rt-text b { color: var(--orange); }
+.rt-input { display: flex; flex-direction: column; gap: 6px; padding: 0 14px 12px; font-size: 13px; color: #8e8e93; }
+.rt-del {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--stop);
+  padding: 6px 8px;
+}
+.rt.on .rt-del { top: 24px; transform: none; }
 
 .group { background: #2c2c2e; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
 .group-title { margin: 4px 4px 6px; font-size: 13px; color: #8e8e93; text-transform: uppercase; letter-spacing: .2px; }
