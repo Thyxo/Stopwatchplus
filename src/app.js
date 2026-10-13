@@ -488,8 +488,12 @@ let heightFixed = false;
 function fixHeight() {
   const portrait = innerHeight > innerWidth;
   heightFixed = isStandalone() && portrait && screen.height > innerHeight + 20;
-  app.style.height = heightFixed ? screen.height + 'px' : '';
-  app.style.bottom = heightFixed ? 'auto' : '';
+  // body er position:fixed med overflow:hidden og klipper ellers bunden (fanebjælken) væk
+  for (const el of [document.body, app, secret]) {
+    el.style.height = heightFixed ? screen.height + 'px' : '';
+    el.style.bottom = heightFixed ? 'auto' : '';
+  }
+  document.documentElement.style.height = heightFixed ? screen.height + 'px' : '';
 }
 
 function onResize() {
