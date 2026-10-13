@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ur" />
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
+  <title>Ur</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app" data-tab="stopwatch">
+
+    <!-- ============ STOPUR ============ -->
+    <section class="screen s-stopwatch" id="sStopwatch" data-screen="stopwatch">
+      <div class="pages" id="pages">
+        <div class="page page-digital">
+          <div class="big" id="big">00.00,00</div>
+        </div>
+        <div class="page page-analog">
+          <div class="dial-wrap">
+            <svg class="dial" id="dial" viewBox="-173 -173 346 346" aria-hidden="true"></svg>
+            <div class="mini" id="mini">00.00,00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="cbtn left" id="btnLeft" type="button" disabled><span id="btnLeftLabel">Runde</span></button>
+        <div class="dots" id="dots"><i class="on"></i><i></i></div>
+        <button class="cbtn right start" id="btnRight" type="button"><span id="btnRightLabel">Start</span></button>
+      </div>
+
+      <div class="laps" id="laps"><div class="laps-list" id="lapList"></div></div>
+    </section>
+
+    <!-- ============ VERDENSUR ============ -->
+    <section class="screen s-world" data-screen="world" hidden>
+      <div class="navbar">
+        <button class="glass pill-btn" type="button">Rediger</button>
+        <button class="glass circle-btn" type="button" aria-label="Tilføj">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      </div>
+      <h1 class="large-title">Verdensur</h1>
+      <div class="list">
+        <div class="row world-row">
+          <div class="row-main">
+            <div class="row-sub">I dag, +0 t</div>
+            <div class="row-title">København</div>
+          </div>
+          <div class="row-time" id="worldTime">00.00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ALARMER ============ -->
+    <section class="screen s-alarms" data-screen="alarms" hidden>
+      <div class="navbar">
+        <button class="glass pill-btn" type="button">Rediger</button>
+        <button class="glass circle-btn" type="button" aria-label="Tilføj">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      </div>
+      <h1 class="large-title">Alarmer</h1>
+      <div class="list">
+        <div class="section-head">Søvn | Vågn</div>
+        <div class="row alarm-row">
+          <div class="row-main">
+            <div class="row-sub dim">Ingen alarm</div>
+          </div>
+          <button class="glass small-pill" type="button">Indstil</button>
+        </div>
+        <div class="section-head">Andre</div>
+        <div class="row alarm-row off" data-alarm>
+          <div class="row-main">
+            <div class="alarm-time">06.45</div>
+            <div class="row-sub">Alarm</div>
+          </div>
+          <button class="switch" type="button" role="switch" aria-checked="false"><i></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TIDTAGNINGER ============ -->
+    <section class="screen s-timers" data-screen="timers" hidden>
+      <div class="navbar"><span></span><button class="glass pill-btn" type="button">Rediger</button></div>
+      <div class="picker">
+        <div class="picker-band"></div>
+        <div class="picker-col"><div class="wheel"><span class="f2">22</span><span class="f1">23</span><b>0</b><span class="f1">1</span><span class="f2">2</span></div><span class="pl">timer</span></div>
+        <div class="picker-col"><div class="wheel"><span class="f2">13</span><span class="f1">14</span><b>15</b><span class="f1">16</span><span class="f2">17</span></div><span class="pl">min.</span></div>
+        <div class="picker-col"><div class="wheel"><span class="f2">58</span><span class="f1">59</span><b>0</b><span class="f1">1</span><span class="f2">2</span></div><span class="pl">sek.</span></div>
+      </div>
+      <div class="timer-buttons">
+        <button class="cbtn left" type="button" disabled><span>Annuller</span></button>
+        <button class="cbtn right start" type="button"><span>Start</span></button>
+      </div>
+      <div class="list">
+        <div class="row"><div class="row-main"><div class="row-title sm">Når tiden er gået</div></div><div class="row-value">Radar <span class="chev">›</span></div></div>
+      </div>
+    </section>
+
+    <!-- ============ FANER ============ -->
+    <nav class="tabbar" id="tabbar">
+      <div class="tab-pill" id="tabPill"></div>
+      <button class="tab" type="button" data-tab="world">
+        <svg viewBox="0 0 26 26" class="ico ico-stroke">
+          <circle cx="13" cy="14.2" r="10.65" />
+          <ellipse cx="13" cy="14.2" rx="4.5" ry="10.65" />
+          <path d="M13 3.55v21.3M2.35 14.2h21.3M3.4 7.8Q13 10.4 22.6 7.8M3.4 20.6Q13 18 22.6 20.6" />
+        </svg>
+        <span>Verdensur</span>
+      </button>
+      <button class="tab" type="button" data-tab="alarms">
+        <svg viewBox="0 0 26 26" class="ico">
+          <path class="fill" d="M2.7 8.3A4.6 4.6 0 0 1 9.3 2.3Z M23.3 8.3A4.6 4.6 0 0 0 16.7 2.3Z" />
+          <circle class="fill" cx="13" cy="13.9" r="10" />
+          <path class="leg" d="M7.9 21.6 5.4 24M18.1 21.6l2.5 2.4" />
+          <path class="hand" d="M13 6.9v7.8H7.5" />
+        </svg>
+        <span>Alarmer</span>
+      </button>
+      <button class="tab on" type="button" data-tab="stopwatch">
+        <svg viewBox="0 0 26 26" class="ico">
+          <rect class="fill" x="11.3" y="0.6" width="3.4" height="4.6" rx="1.4" />
+          <path class="leg" d="M21.9 7.6l1.6-1.1" style="stroke-width:2.6" />
+          <circle class="fill" cx="13" cy="14" r="11.7" />
+          <path class="hand" d="M13 14V6.4" style="stroke-width:1.6" />
+          <circle class="dot" cx="13" cy="14" r="1.95" />
+        </svg>
+        <span>Stopur</span>
+      </button>
+      <button class="tab" type="button" data-tab="timers">
+        <svg viewBox="0 0 26 26" class="ico ico-stroke" style="stroke-width:2">
+          <path d="M13 8.1V3.7A10.5 10.5 0 1 1 5.08 7.31" />
+          <path class="fill nostroke" d="M7.3 9.4L14.3 12.8A1.95 1.95 0 1 1 11.7 15.7Z" />
+        </svg>
+        <span>Tidtagninger</span>
+      </button>
+    </nav>
+
+    <div class="indicator" id="indicator" hidden></div>
+  </div>
+
+  <!-- ============ HEMMELIGT PANEL ============ -->
+  <div class="secret" id="secret" hidden>
+    <div class="secret-sheet" id="secretSheet">
+      <div class="sheet-head">
+        <span></span>
+        <span class="sheet-title">Indstillinger</span>
+        <button class="sheet-done" id="secretDone" type="button">Færdig</button>
+      </div>
+      <div class="sheet-scroll" id="sheetScroll">
+        <div class="plan" id="planLine"></div>
+
+        <div class="group">
+          <label class="cell"><span>Force aktiv</span><input type="checkbox" class="tgl" data-s="active" /></label>
+        </div>
+
+        <div class="group-title">Tilstand</div>
+        <div class="seg" data-seg="mode">
+          <button data-v="single">Tid</button><button data-v="sequence">Række</button><button data-v="date">Dato</button><button data-v="code">Kode</button><button data-v="list">Liste</button>
+        </div>
+
+        <div class="mode-box" data-mode="single">
+          <div class="group">
+            <label class="cell"><span>Tal</span><input class="inp" data-s="single.value" inputmode="decimal" autocomplete="off" placeholder="fx 1437 eller 37" /></label>
+          </div>
+          <div class="group-title">Placering</div>
+          <div class="seg" data-seg="single.placement">
+            <button data-v="auto">Auto</button><button data-v="hh">,HH</button><button data-v="sshh">SS,HH</button><button data-v="mmsshh">MM.SS,HH</button>
+          </div>
+        </div>
+
+        <div class="mode-box" data-mode="sequence">
+          <div class="group">
+            <label class="cell col"><span>Tal (mellemrum eller komma)</span><input class="inp wide" data-s="sequence.text" inputmode="decimal" autocomplete="off" placeholder="05 12 17 23 28 31 36" /></label>
+          </div>
+          <div class="group-title">Cifre pr. runde</div>
+          <div class="seg" data-seg="sequence.per"><button data-v="2">2 (hundrededele)</button><button data-v="1">1 (sidste ciffer)</button></div>
+          <div class="group">
+            <label class="cell"><span>Stop tager næste tal</span><input type="checkbox" class="tgl" data-s="sequence.stopTakes" /></label>
+          </div>
+        </div>
+
+        <div class="mode-box" data-mode="date">
+          <div class="seg" data-seg="date.which"><button data-v="tomorrow">I morgen</button><button data-v="today">I dag</button><button data-v="custom">Fødselsdato</button></div>
+          <div class="group" data-show="date.which=custom">
+            <label class="cell"><span>DDMMÅÅ</span><input class="inp" data-s="date.custom" inputmode="numeric" autocomplete="off" placeholder="240387" maxlength="8" /></label>
+          </div>
+          <div class="group-title">Placering</div>
+          <div class="seg" data-seg="date.placement"><button data-v="laps">Runder DD·MM·ÅÅ</button><button data-v="sshh">00.DD,MM</button><button data-v="mmsshh">DD.MM,ÅÅ</button></div>
+          <div class="group" data-show="date.placement=laps">
+            <label class="cell"><span>Stop tager næste tal</span><input type="checkbox" class="tgl" data-s="date.stopTakes" /></label>
+          </div>
+        </div>
+
+        <div class="mode-box" data-mode="code">
+          <div class="group">
+            <label class="cell"><span>Kode</span><input class="inp" data-s="code.value" inputmode="numeric" autocomplete="off" placeholder="2100" /></label>
+          </div>
+          <div class="group-title">Placering</div>
+          <div class="seg" data-seg="code.placement"><button data-v="sshh">00.21,00</button><button data-v="mmss">21.00</button><button data-v="hh">,HH</button><button data-v="laps">Runder</button></div>
+          <div class="group" data-show="code.placement=laps">
+            <label class="cell"><span>Stop tager næste tal</span><input type="checkbox" class="tgl" data-s="code.stopTakes" /></label>
+          </div>
+        </div>
+
+        <div class="mode-box" data-mode="list">
+          <div class="group">
+            <label class="cell col"><span>Én linje pr. tilskuer (fx side linje ord)</span><textarea class="inp wide" data-s="list.text" rows="4" inputmode="decimal" autocomplete="off"></textarea></label>
+            <div class="cell"><span>Linje nu</span><span class="stepper"><button type="button" id="listPrev">‹</button><b id="listPos">1/1</b><button type="button" id="listNext">›</button></span></div>
+            <label class="cell"><span>Næste linje efter Nulstil</span><input type="checkbox" class="tgl" data-s="list.advance" /></label>
+          </div>
+          <div class="group-title">Placering</div>
+          <div class="seg" data-seg="list.placement"><button data-v="laps">Runder</button><button data-v="single">Ét tal ved Stop</button></div>
+        </div>
+
+        <div class="group-title">Tilskueren</div>
+        <div class="group">
+          <label class="cell"><span>Blind (kigger ikke ved stop)</span><input type="checkbox" class="tgl" data-s="blind" /></label>
+        </div>
+        <div class="group-title">Tilladt synligt spring</div>
+        <div class="seg" data-seg="jumpTol"><button data-v="0">Ingen</button><button data-v="50">0,5 s</button><button data-v="100">1 s</button><button data-v="200">2 s</button></div>
+        <div class="group-title">Hvis målet ikke kan nås usynligt</div>
+        <div class="seg" data-seg="miss"><button data-v="hh">Ram hundrededele</button><button data-v="none">Vis ægte tid</button></div>
+        <div class="group-title">Talrække ved Nulstil</div>
+        <div class="seg" data-seg="onReset"><button data-v="restart">Start forfra</button><button data-v="continue">Fortsæt</button></div>
+        <div class="group">
+          <label class="cell"><span>Diskret prik når force er klar</span><input type="checkbox" class="tgl" data-s="indicator" /></label>
+        </div>
+
+        <div class="group-title">Seneste tryk (det tilskueren faktisk stoppede på)</div>
+        <div class="group log" id="log"><div class="cell dim">Ingen endnu</div></div>
+
+        <div class="group">
+          <button class="cell btn" id="runSelftest" type="button">Kør selvtest (2.000 tilskuere)</button>
+          <pre class="selftest-out" id="selftestOut" hidden></pre>
+        </div>
+        <div class="group">
+          <button class="cell btn danger" id="panicBtn" type="button">PANIK – slå force fra</button>
+        </div>
+        <p class="foot">
+          Åbn: 5 hurtige tryk øverst til højre. Panik: hold fingeren øverst til venstre i 1 sekund.
+          <span id="screenInfo"></span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
