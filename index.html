@@ -93,11 +93,11 @@
     <!-- ============ TIDTAGNINGER ============ -->
     <section class="screen s-timers" data-screen="timers" hidden>
       <div class="navbar"><span></span><button class="glass pill-btn" type="button">Rediger</button></div>
-      <div class="picker">
+      <div class="picker" id="picker">
         <div class="picker-band"></div>
-        <div class="picker-col"><div class="wheel"><span class="f2">22</span><span class="f1">23</span><b>0</b><span class="f1">1</span><span class="f2">2</span></div><span class="pl">timer</span></div>
-        <div class="picker-col"><div class="wheel"><span class="f2">13</span><span class="f1">14</span><b>15</b><span class="f1">16</span><span class="f2">17</span></div><span class="pl">min.</span></div>
-        <div class="picker-col"><div class="wheel"><span class="f2">58</span><span class="f1">59</span><b>0</b><span class="f1">1</span><span class="f2">2</span></div><span class="pl">sek.</span></div>
+        <div class="picker-col"><div class="wheel" data-wheel="h" data-max="23"></div><span class="pl">timer</span></div>
+        <div class="picker-col"><div class="wheel" data-wheel="m" data-max="59"></div><span class="pl">min.</span></div>
+        <div class="picker-col"><div class="wheel" data-wheel="s" data-max="59"></div><span class="pl">sek.</span></div>
       </div>
       <div class="timer-buttons">
         <button class="cbtn left" type="button" disabled><span>Annuller</span></button>
@@ -168,22 +168,26 @@
       </div>
 
       <div class="seg ptabs" id="ptabs">
-        <button data-p="routines">Rutiner</button><button data-p="setup">Indstil</button><button data-p="more">Mere</button>
+        <button data-p="setup">Indstil</button><button data-p="routines">Rutiner</button><button data-p="more">Mere</button>
       </div>
 
       <div class="sheet-scroll" id="sheetScroll">
         <!-- RUTINER -->
-        <section class="pane" data-pane="routines">
+        <section class="pane" data-pane="routines" hidden>
+          <div class="pane-head"><span class="group-title">Tryk for at vælge – hver rutine har sine egne tal</span><button class="link" id="rtEdit" type="button">Rediger</button></div>
           <div class="group" id="rtList"></div>
-          <div class="group-title">Mine rutiner</div>
-          <div class="group" id="rtCustom"></div>
-          <p class="foot">Vælg en rutine og skriv dit tal. Juster detaljer under <b>Indstil</b> og gem dem som din egen rutine.</p>
+          <div class="group">
+            <button class="cell btn" id="rtNew" type="button">+ Ny rutine ud fra nuværende</button>
+            <button class="cell btn" id="rtRestore" type="button">Læg slettede standardrutiner tilbage</button>
+          </div>
+          <p class="foot">Under <b>Rediger</b> kan du flytte, omdøbe, kopiere og slette. "Rediger" på en rutine åbner den i Indstil – alt du ændrer der, gemmes i rutinen.</p>
         </section>
 
         <!-- INDSTIL -->
-        <section class="pane" data-pane="setup" hidden>
-          <div class="seg" data-seg="mode">
-            <button data-v="single">Tid</button><button data-v="sequence">Række</button><button data-v="date">Dato</button><button data-v="code">Kode</button><button data-v="list">Liste</button>
+        <section class="pane" data-pane="setup">
+          <div class="cur-rt"><span>Rutine: <b id="curRoutine"></b></span><button class="link" id="renameCur" type="button">Omdøb</button></div>
+          <div class="seg seg6" data-seg="mode">
+            <button data-v="single">Tid</button><button data-v="sequence">Række</button><button data-v="date">Dato</button><button data-v="code">Kode</button><button data-v="card">Kort</button><button data-v="list">Liste</button>
           </div>
 
           <div class="mode-box" data-mode="single">
@@ -207,7 +211,10 @@
           </div>
 
           <div class="mode-box" data-mode="date">
-            <div class="seg" data-seg="date.which"><button data-v="tomorrow">I morgen</button><button data-v="today">I dag</button><button data-v="custom">Fødselsdato</button></div>
+            <div class="seg" data-seg="date.which"><button data-v="tomorrow">I morgen</button><button data-v="today">I dag</button><button data-v="custom">Fødselsdato</button><button data-v="clock">Klokken</button></div>
+            <div class="group" data-show="date.which=clock">
+              <label class="cell"><span>Minutter frem</span><input class="inp" data-s="date.plusMin" inputmode="numeric" autocomplete="off" placeholder="0" /></label>
+            </div>
             <div class="group" data-show="date.which=custom">
               <label class="cell"><span>DDMMÅÅ</span><input class="inp" data-s="date.custom" inputmode="numeric" autocomplete="off" placeholder="240387" maxlength="8" /></label>
             </div>
@@ -238,8 +245,33 @@
             <div class="seg" data-seg="list.placement"><button data-v="laps">Runder</button><button data-v="single">Ét tal ved Stop</button></div>
           </div>
 
+          <div class="mode-box" data-mode="card">
+            <div class="group">
+              <label class="cell"><span>Stak</span><select class="inp" id="stackSel" data-s="card.stack"></select></label>
+              <label class="cell col" data-show="card.stack=custom"><span>52 kort fra toppen (fx 4C 2H 7D …)</span><textarea class="inp wide" data-s="card.custom" rows="3" autocomplete="off" autocapitalize="characters"></textarea></label>
+              <label class="cell"><span>Kort ovenpå stakken</span><input class="inp" data-s="card.offset" inputmode="numeric" autocomplete="off" placeholder="0" /></label>
+              <label class="cell"><span>Tæl fra bunden</span><input type="checkbox" class="tgl" data-s="card.fromBottom" /></label>
+              <label class="cell"><span>Skjult input i Tidtagninger</span><input type="checkbox" class="tgl" data-s="card.timerInput" /></label>
+            </div>
+            <div class="group-title">Kortet</div>
+            <div class="group" id="cardInputBox"></div>
+            <div class="group-title">Pladsen vises som</div>
+            <div class="seg" data-seg="card.placement"><button data-v="hh">Hundrededele (00.08,27)</button><button data-v="ss">Sekunder (00.27,xx)</button></div>
+          </div>
+
+          <div class="group-title">Aktivering</div>
           <div class="group">
-            <button class="cell btn" id="saveRoutine" type="button">Gem som min rutine</button>
+            <div class="cell col"><span>Force først efter</span>
+              <div class="seg in" data-seg="armAfter"><button data-v="0">Straks</button><button data-v="1">1 s</button><button data-v="3">3 s</button><button data-v="5">5 s</button><button data-v="10">10 s</button></div>
+            </div>
+            <div class="cell col"><span>Ærlige forsøg først</span>
+              <div class="seg in" data-seg="honestRuns"><button data-v="0">Ingen</button><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button></div>
+            </div>
+            <label class="cell"><span>Kun én gang (slå fra efter afsløring)</span><input type="checkbox" class="tgl" data-s="once" /></label>
+          </div>
+
+          <div class="group">
+            <button class="cell btn" id="saveRoutine" type="button">Gem som ny rutine</button>
           </div>
         </section>
 
@@ -248,6 +280,7 @@
           <div class="group">
             <label class="cell"><span>Blind (kigger ikke ved stop)</span><input type="checkbox" class="tgl" data-s="blind" /></label>
             <label class="cell"><span>Diskret prik når force er klar</span><input type="checkbox" class="tgl" data-s="indicator" /></label>
+            <label class="cell"><span>Peek: hold fingeren på tallet</span><input type="checkbox" class="tgl" data-s="peekHold" /></label>
           </div>
           <div class="group-title">Tilladt synligt spring</div>
           <div class="seg" data-seg="jumpTol"><button data-v="0">Ingen</button><button data-v="50">0,5 s</button><button data-v="100">1 s</button><button data-v="200">2 s</button></div>

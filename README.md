@@ -34,37 +34,78 @@ Ingen build-kommando og ingen output-mappe (roden udgives som den er). `vercel.j
 
 ---
 
-## 2. Sådan vælger du tilstand
+## 2. Panelet
 
-**Hemmeligt panel:** tryk **5 gange hurtigt** (inden for 2½ sek.) i **øverste højre hjørne** (ved batteri-ikonet eller lige under). Panelet glider op. **Færdig** lukker det igen uden spor – stopuret står præcis, som det stod.
+**Åbn:** tryk **5 gange hurtigt** (inden for 2½ sek.) i **øverste højre hjørne**. **Færdig** lukker uden spor.
 
-Øverst i panelet står planen, fx `Stop → ––.14,37` eller `Runder: 05 · 12 · 17 …`, og hvilken runde der er den næste.
+Øverst: planen (fx `K♦ er nr. 26 → Stop ––.––,26`), kontakten **Force aktiv** og hvad tilskueren sidst *faktisk* stoppede på. Derunder tre faner:
+
+### Indstil (åbner altid her)
+Viser hvilken rutine du redigerer. **Alt du ændrer her, gemmes i den valgte rutine.**
 
 | Tilstand | Hvad sker der | Eksempel |
 |---|---|---|
-| **Tid** (enkelt tid) | Tallet ved Stop. *Auto* vælger placering ud fra antal cifre: 1-2 cifre = hundrededele (`,37`), 3-4 = sekunder+hundrededele (`14,37`), 5-6 = hele visningen (`MM.SS,HH`). | `37` → `00.08,37` |
-| **Række** (talrække) | Hver gang der trykkes **Runde**, fryser omgangen på næste tal i listen (hundrededelene). *Stop tager næste tal* = Stop fryser den sidste omgang på næste tal. *1 ciffer pr. runde* bruger kun sidste ciffer. | Lotto `5 12 17 23 28 31 36`, telefon `12345678` (4 runder à 2 cifre), PIN `2580` (1 ciffer pr. runde) |
-| **Dato** | I morgen, i dag eller en fødselsdato (DDMMÅÅ). Placering: 3 runder (DD · MM · ÅÅ), `00.DD,MM` eller `DD.MM,ÅÅ`. | I morgen = 14-10-26 → runderne slutter på `14`, `10`, `26` |
-| **Kode** (cifferkode) | Fx postnummer. `00.21,00` (sekunder+hundrededele), `21.00` (minutter+sekunder), `,HH` eller fordelt på runder. | `2100` → `00.21,00` |
-| **Liste** | Én linje pr. tilskuer (bogtest: side linje ord, serienumre …). Linjen bruges på runder eller som ét tal ved Stop. *Næste linje efter Nulstil* går videre til næste linje, når en tilskuer er færdig. | `47 12 05` → runderne slutter på `47`, `12`, `05` |
+| **Tid** | Tallet ved Stop. *Auto*: 1-2 cifre = `,HH`, 3-4 = `SS,HH`, 5-6 = `MM.SS,HH`. | `37` → `00.08,37` |
+| **Række** | Hver **Runde** fryser på næste tal. *Stop tager næste tal*. 1 eller 2 cifre pr. runde. | Lotto, telefonnummer, PIN |
+| **Dato** | I morgen, i dag, fødselsdato (DDMMÅÅ) eller **klokken nu** (+ minutter). På runder, `00.DD,MM` eller `DD.MM,ÅÅ`. | 14 · 10 · 26 |
+| **Kode** | Fx postnummer: `00.21,00`, `21.00`, `,HH` eller runder. | `2100` |
+| **Kort** (ACAAN) | Kortets plads i en stak (Mnemonica, Aronson, Si Stebbins eller din egen) vises ved Stop – som hundrededele eller sekunder. Ekstra kort ovenpå og "tæl fra bunden". | K♦ i Mnemonica → `00.07,26` |
+| **Liste** | Én linje pr. tilskuer (bogtest, serienumre). Går videre til næste linje efter Nulstil. | `47 12 05` |
 
-Tal kan skilles med mellemrum, komma, punktum eller bindestreg (talfeltet på iPhone har komma). Lange tal deles i par: `12345678` → `12 34 56 78`.
-
-### Øvrige indstillinger
+**Aktivering**
 | Indstilling | Betydning |
 |---|---|
-| **Force aktiv** | Slukket = helt almindeligt, korrekt stopur. |
-| **Blind** | Tilskueren kigger ikke på skærmen i det øjeblik, de stopper ("hold telefonen væk og stop når du føler, der er gået 20 sekunder"). Så vises hele målet – også sekunder og minutter – uanset hvornår der stoppes. |
-| **Tilladt synligt spring** | Hvor meget et aflæseligt ciffer (sekunder) må springe ved Stop. *Ingen* er standard og helt usynligt. |
-| **Hvis målet ikke kan nås usynligt** | *Ram hundrededele*: ramte tilskueren ikke sekundet, passer i det mindste de to sidste cifre. *Vis ægte tid*: helt ærligt tal. |
-| **Talrække ved Nulstil** | *Start forfra* (standard) eller *Fortsæt* med næste tal (fx Lotto fordelt på flere forsøg). |
-| **Diskret prik** | En næsten usynlig mørkegrå prik øverst i midten, når force er klar. |
-| **Seneste tryk** | Viser, hvad tilskueren *faktisk* stoppede på, og hvad der blev vist (✓ ramt, ½ kun hundrededele, – ærligt). En lokal "peek". |
-| **Kør selvtest** | 2.000 tilfældige tilskuere direkte på telefonen. |
+| **Force først efter** 1/3/5/10 s | Stop eller runder før tiden er helt ærlige (og bruger ikke tal fra talrækken). Godt mod "jeg trykkede ved et uheld". |
+| **Ærlige forsøg først** 1-3 | De første forsøg (Start → Nulstil) er ægte. Tælles fra du lukker panelet. "Prøv lige uret først" → næste forsøg rammer. |
+| **Kun én gang** | Efter et forsøg med force slås force fra, når der trykkes Nulstil. Bagefter kan alle undersøge appen. |
 
-Indstillingerne gemmes på telefonen. Stopuret kører videre, selv om appen lukkes (som på iPhone).
+### Rutiner
+14 færdige rutiner, **hver med sine egne tal**: To sidste cifre · Ærlig prøve først · Ram sekundet · Blind stop · ACAAN · Lotto-række · Telefonnummer · PIN-kode · I morgens dato · Klokken lige nu · Fødselsdag · Fødselsår · Postnummer · Bogtest.
+
+- Tryk for at vælge; feltet til dit tal (eller kortvælgeren) vises under rutinen.
+- **Rediger** (øverst til højre): flyt ↑↓, **Rediger** (åbner rutinen i Indstil), **Omdøb**, **Kopi**, **Slet**.
+- **+ Ny rutine ud fra nuværende** og **Læg slettede standardrutiner tilbage**.
+
+### Mere
+Blind, diskret prik, hold-peek til/fra, tilladt synligt spring, hvad der sker hvis målet ikke kan nås, talrække ved Nulstil, log over seneste tryk, selvtest og PANIK.
 
 ---
+
+## 2b. ACAAN med skjult kort-input
+
+1. Stak bunken (fx Mnemonica). Vælg rutinen **ACAAN** og stakken under Indstil → Kort.
+2. Tilskueren nævner et hvilket som helst kort.
+3. **Skjult input:** gå til fanen **Tidtagninger**, og "stil en timer": **timer = kulør** (1 ♣, 2 ♥, 3 ♠, 4 ♦ – CHaSeD) og **min. = værdi** (1 = es … 11 knægt, 12 dame, 13 konge). Sekunderne er ligegyldige. Kortet gemmes, når du går tilbage til Stopur. Eksempel: 7♥ = 2 timer 7 min.
+   (Eller vælg kortet i panelet.)
+4. Tilskueren starter og stopper selv – hundrededelene viser kortets plads (7♥ i Mnemonica = 41). De tæller ned i bunken, og kortet ligger der.
+
+*Tip:* Med "Kort ovenpå stakken" kan du have fx 3 jokere øverst. Placeringen "Sekunder" (00.41,xx) passer til "stop når du føler, der er gået 40 sekunder" med Blind.
+
+---
+
+## 2c. Peek – se hvad de stoppede på
+
+| Metode | Sådan |
+|---|---|
+| **Hold-peek** (bygget) | Tilskueren stopper hemmeligt, trykker **Nulstil** og giver dig telefonen. **Hold fingeren på tallet i ½ sek.** – det sidste stop og alle runder vises, så længe du holder. Slip → 00.00,00 igen. |
+| **Log** (bygget) | Panelets top og **Mere → Seneste tryk** viser ægte og vist tal for hvert tryk. |
+
+**Idéer til flere peeks (ikke bygget endnu):**
+- **Gummibånd-peek:** træk den digitale side mod højre – i "hullet" ved kanten står det sidste stop med mørkegrå skrift (som tidsstemplet i Noter-appen).
+- **Verdensur-peek:** en ekstra by i Verdensur, hvis klokkeslæt er sekunderne og hundrededelene fra sidste stop (fx "Reykjavik 14.37").
+- **Analog-peek:** efter Nulstil står den blå omgangsviser stille på sidste stops sekund – kun du ved, hvad den betyder.
+- **Fjern-peek:** stoppet sendes til din egen telefon/Apple Watch via en lille server (WebSocket). Data findes allerede (`engine.onLog`).
+- **Matematisk peek:** tilskueren lægger tallet til fx deres alder – appen kender begge dele og viser resultatet som "tilfældigt" tal i næste forsøg.
+
+---
+
+## 2d. Flere idéer til rutiner
+- **Dobbelt-forudsigelse:** to tilskuere stopper hver sit ur (Runde/Stop); summen af deres to tal = dit tal (motoren kan beregne det andet tal ud fra det første).
+- **Lotto i flere forsøg:** "Fortsæt" ved Nulstil – én tilskuer pr. tal.
+- **Klokken lige nu:** "Hvornår mødes vi i morgen?" → runderne viser tidspunktet, du har skrevet på en seddel.
+- **Fødselsår + alder:** Runde viser 19 · 87; næste forsøg viser deres alder.
+- **Kortspil uden stak:** to omgange = værdi (01-13) og kulør (1-4).
+- **Postkort/hotelværelse:** værelsesnummer (3-4 cifre) som SS,HH med "stop på 20 sekunder".
 
 ## 3. Sådan virker force-motoren (den organiske metode)
 
@@ -90,7 +131,7 @@ Start igen: panel → *Force aktiv*.
 
 ---
 
-## 5. Fjernstyring og peek (idé – ikke bygget endnu)
+## 5. Fjernstyring (idé – ikke bygget endnu)
 
 **Fjernstyring:** Målet sendes live fra en anden telefon, også mens tilskueren holder stopuret.
 - Lille Node-server (fx på Railway) med WebSocket (`ws`) eller Server-Sent Events, ét "rum" pr. optræden med en kort kode.
@@ -103,6 +144,9 @@ Start igen: panel → *Force aktiv*.
 
 ## 6. Kendte begrænsninger
 
+- **Stakke:** Mnemonica er tjekket nøje. Kontrollér Aronson-stakken mod din egen bog første gang (appen viser "K♦ ligger som nr. 26" osv.), eller indsæt din egen stak.
+- **Skjult kort-input** gemmes, når du forlader Tidtagninger – husk at gå tilbage til Stopur, før tilskueren starter.
+
 - **Sekunder og minutter kan ikke tvinges usynligt**, hvis tilskueren kigger og stopper langt fra målet – så rammes kun hundrededelene (eller ægte tid). Brug *Blind* eller en rutine, hvor de sigter efter tallet.
 - **Stop lige efter Runde i tilstanden Tid:** Hvis tilskueren trykker Runde og under et sekund efter Stop, kan målet i sjældne tilfælde ikke nås uden et synligt spring – så vises ægte tid (1 % i testen). Talrække-tilstandene har ikke det problem.
 - **Omgangsrækken** kan i ca. 1 % af runderne skifte sit (lille) sekundtal ved frysning, for at totalen kan blive stående.
@@ -114,7 +158,12 @@ Start igen: panel → *Force aktiv*.
 
 ## 7. Hvad er testet
 
-`npm test` (Node 18+, ingen afhængigheder) – **28 tests, alle grønne**:
+`npm test` (Node 18+, ingen afhængigheder) – **37 tests, alle grønne**:
+
+**Rutiner:** alle 14 standardrutiner giver en gyldig plan; hver rutine beholder sine egne tal; ny/omdøb/kopi/flyt/slet/gendan; overlever genindlæsning og flytter gamle egne rutiner over.
+
+**Kort/aktivering:** 3 stakke med 52 forskellige kort, kort skrevet på mange måder (`7h`, `Q♠`, `E♥`, `D♦` = dame), plads med offset/fra bunden, ACAAN-stop (K♦ → `00.07,26`), "force først efter 3 s" (også for talrækker).
+
 
 **Format:** `00.00,00`, `59.59,99`, `1.00.00,00` og `12.03.04,05` (timer uden foranstillet nul), afrunding af flydende tal.
 

@@ -2,6 +2,8 @@
 //   { stop: mønster|null, laps: [mønster…], stopTakesNextLap, summary, error }
 // Et mønster er 6 pladser for MMSSHH (null = frit), se engine.js.
 
+import { stackCards, cardPosition, prettyCard } from './stacks.js';
+
 const onlyDigits = (s) => String(s ?? '').replace(/\D/g, '');
 const FREE = () => [null, null, null, null, null, null];
 
@@ -56,7 +58,11 @@ export function itemsToLaps(items, per = 2) {
 }
 
 // Dato som DDMMÅÅ. which: 'today' | 'tomorrow' | 'custom'
-export function dateDigits(which, custom, now = new Date()) {
+export function dateDigits(which, custom, now = new Date(), plusMin = 0) {
+  if (which === 'clock') { // klokken nu (+ minutter) som TTMM
+    const t = new Date(now.getTime() + (Number(plusMin) || 0) * 60000);
+    return String(t.getHours()).padStart(2, '0') + String(t.getMinutes()).padStart(2, '0');
+  }
   if (which === 'custom') {
     const d = onlyDigits(custom);
     return d.length === 6 ? d : null;
@@ -115,10 +121,10 @@ export function buildPlan(s, now = new Date()) {
       break;
     }
     case 'date': {
-      const d = dateDigits(s.date?.which || 'tomorrow', s.date?.custom, now);
+      const d = dateDigits(s.date?.which || 'tomorrow', s.date?.custom, now, s.date?.plusMin);
       if (!d) { plan.error = 'Dato skal være DDMMÅÅ'; break; }
       const pl = s.date?.placement || 'laps';
-      if (pl === 'laps') withLaps([d.slice(0, 2), d.slice(2, 4), d.slice(4, 6)], 2, s.date?.stopTakes !== false);
+      if (pl === 'laps') withLaps(splitItems(d, 2), 2, s.date?.stopTakes !== false);
       else if (pl === 'sshh') { plan.stop = patSSHH(d.slice(0, 4)); plan.summary = `Stop → ${fmtPat(plan.stop)}`; }
       else { plan.stop = patMMSSHH(d); plan.summary = `Stop → ${fmtPat(plan.stop)}`; }
       plan.dateDigits = d;
@@ -146,6 +152,20 @@ export function buildPlan(s, now = new Date()) {
         plan.summary = `Stop → ${fmtPat(plan.stop)}`;
       }
       plan.summary = `Linje ${idx + 1}/${lines.length}: ${plan.summary}`;
+      break;
+    }
+    case 'card': { // ACAAN: kortets plads i stakken
+      const c = s.card || {};
+      const cards = stackCards(c.stack || 'mnemonica', c.custom);
+      if (!cards) { plan.error = 'Egen stak skal have 52 forskellige kort'; break; }
+      const pos = cardPosition(c.card, cards, c.offset, c.fromBottom);
+      if (!pos) { plan.error = 'Vælg et kort'; break; }
+      if (pos > 99) { plan.error = 'Pladsen er over 99'; break; }
+      const two = String(pos).padStart(2, '0');
+      plan.stop = c.placement === 'ss' ? [null, null, +two[0], +two[1], null, null] : patHH(two);
+      if (plan.stop[2] !== null && plan.stop[2] > 5) { plan.error = 'Sekunder skal være 00-59'; break; }
+      plan.cardPos = pos;
+      plan.summary = `${prettyCard(c.card)} er nr. ${pos} → Stop ${fmtPat(plan.stop)}`;
       break;
     }
     default:

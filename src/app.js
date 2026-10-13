@@ -4,18 +4,26 @@ import { buildPlan, listLines } from './targets.js';
 import { loadSettings, saveSettings, engineOptions } from './settings.js';
 import { formatCs, msToCs } from './format.js';
 import { buildDial } from './dial.js';
-import { ROUTINES, applyRoutine, snapshotRoutine } from './routines.js';
+import {
+  BUILTIN, ensureRoutines, findRoutine, storeActive, selectRoutine, newRoutine, duplicateRoutine,
+  renameRoutine, deleteRoutine, moveRoutine, restoreBuiltins,
+} from './routines.js';
+import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const now = () => performance.now();
 
 const STATE_KEY = 'ur-stopur-tilstand-v1';
-const settings = loadSettings();
+const settings = ensureRoutines(loadSettings());
+
+// Ærlige forsøg: tælles fra panelet sidst blev lukket (eller rutinen valgt)
+let runsDone = 0;
+const honestLeft = () => Math.max(0, (settings.honestRuns | 0) - runsDone);
 
 const engine = new ForceEngine({
   getPlan: () => buildPlan(settings, new Date()),
-  getOptions: () => engineOptions(settings),
+  getOptions: () => ({ ...engineOptions(settings), active: settings.active && honestLeft() === 0 }),
 });
 engine.onLog = () => { if (!secret.hidden) renderLog(); };
 const sw = new Stopwatch({ engine, now });
@@ -35,6 +43,7 @@ const indicator = $('#indicator');
 const updateDial = buildDial($('#dial'));
 
 let page = 0; // 0 = digital, 1 = analog
+let lastRun = null; // sidste forløb før Nulstil (hold-peek)
 let tab = 'stopwatch';
 
 // ---------- gem / gendan ----------
@@ -90,6 +99,7 @@ function fitBig() {
 }
 
 function render(t = now()) {
+  if (peeking) return;
   const ms = sw.displayMs(t);
   const total = msToCs(ms);
   const sum = sw.sumLaps();
@@ -195,11 +205,16 @@ function onLeft() {
     sw.lap(t, { analog: page === 1 });
     lapsBox.scrollTop = 0;
   } else if (sw.state === 'stopped') {
+    lastRun = { total: sw.totalCs(t), laps: sw.laps.slice() }; // til hold-peek
     const res = sw.reset();
+    runsDone++;
     if (res && res.hadHits && settings.mode === 'list' && settings.list.advance) {
       settings.list.index = (settings.list.index | 0) + 1;
-      saveSettings(settings);
     }
+    if (res && res.hadHits && settings.once) settings.active = false; // kun én gang
+    storeActive(settings);
+    saveSettings(settings);
+    syncIndicator();
   }
   afterAction();
 }
@@ -260,6 +275,7 @@ function placePill(animate) {
 }
 
 function setTab(name, animate = true) {
+  if (tab === 'timers' && name !== 'timers') readTimerCard();
   tab = name;
   app.dataset.tab = name;
   tabBtns.forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
@@ -267,6 +283,7 @@ function setTab(name, animate = true) {
   placePill(animate);
   if (name === 'stopwatch') { setPage(page); kick(); }
   if (name === 'world') tickWorld();
+  if (name === 'timers' && !wheelsReady) { wheelsReady = true; initWheels(); }
   saveState();
 }
 
@@ -332,6 +349,82 @@ $$('[data-alarm] .switch').forEach((s) => s.addEventListener('click', () => {
   s.setAttribute('aria-checked', String(on));
   s.closest('.alarm-row').classList.toggle('off', !on);
 }));
+
+// ---------- Tidtagninger: rigtige hjul + skjult kort-input ----------
+// Med Kort-tilstand og "Skjult input i Tidtagninger": stil timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦ – CHaSeD)
+// og min. = værdi (1 = es … 11 knægt, 12 dame, 13 konge). Kortet gemmes, når du forlader fanen.
+const wheels = {};
+let wheelsReady = false;
+$$('.wheel').forEach((w) => {
+  const max = Number(w.dataset.max);
+  for (let i = 0; i <= max; i++) {
+    const it = document.createElement('i');
+    it.textContent = i;
+    w.appendChild(it);
+  }
+  const mark = () => {
+    const idx = Math.max(0, Math.min(max, Math.round(w.scrollTop / 34)));
+    if (w._idx === idx) return;
+    w._idx = idx;
+    [...w.children].forEach((c, i) => c.classList.toggle('on', i === idx));
+  };
+  w.addEventListener('scroll', mark, { passive: true });
+  w._set = (v) => { w.scrollTop = v * 34; mark(); };
+  w._get = () => Math.max(0, Math.min(max, Math.round(w.scrollTop / 34)));
+  wheels[w.dataset.wheel] = w;
+});
+function initWheels() {
+  wheels.h._set(0); wheels.m._set(15); wheels.s._set(0);
+}
+function readTimerCard() {
+  if (settings.mode !== 'card' || !settings.card.timerInput) return;
+  const suit = [null, 'C', 'H', 'S', 'D'][wheels.h._get()];
+  const val = VALUES[wheels.m._get() - 1];
+  if (!suit || !val) return;
+  settings.card.card = val + suit;
+  storeActive(settings);
+  saveSettings(settings);
+  engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card: settings.card.card });
+}
+
+// ---------- hold-peek: hold fingeren på tallet efter Nulstil → se sidste stop ----------
+let peekTimer = 0;
+let peekStart = null;
+let peeking = false;
+function showPeek(on) {
+  peeking = on;
+  if (on && lastRun) {
+    big.textContent = formatCs(lastRun.total);
+    mini.textContent = big.textContent;
+    lapList.textContent = '';
+    const rows = [...lastRun.laps, lastRun.total - lastRun.laps.reduce((a, b) => a + b, 0)];
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const d = document.createElement('div');
+      d.className = 'lap';
+      d.innerHTML = '<span></span><span></span>';
+      d.firstChild.textContent = `Runde ${i + 1}`;
+      d.lastChild.textContent = formatCs(rows[i]);
+      lapList.appendChild(d);
+    }
+    fitBig();
+  } else {
+    lastBig = '';
+    buildLaps();
+    render();
+  }
+}
+pages.addEventListener('pointerdown', (e) => {
+  if (!settings.peekHold || sw.state !== 'idle' || !lastRun) return;
+  peekStart = { x: e.clientX, y: e.clientY };
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => showPeek(true), 450);
+});
+const endPeek = () => { clearTimeout(peekTimer); peekStart = null; if (peeking) showPeek(false); };
+pages.addEventListener('pointerup', endPeek);
+pages.addEventListener('pointercancel', endPeek);
+pages.addEventListener('pointermove', (e) => {
+  if (peekStart && !peeking && Math.hypot(e.clientX - peekStart.x, e.clientY - peekStart.y) > 10) endPeek();
+});
 
 // ---------- skjulte gestusser ----------
 let safeTop = 20;
@@ -404,6 +497,8 @@ function openSecret() {
 
 function closeSecret() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  runsDone = 0; // ærlige forsøg tælles fra nu
+  editMode = false;
   secret.classList.add('out');
   setTimeout(() => {
     secret.hidden = true;
@@ -457,10 +552,16 @@ function renderPlan() {
   if (plan.error) line(plan.error, 'err');
   else {
     line(plan.summary);
+    const extra = [];
+    if (settings.armAfter > 0) extra.push(`først efter ${settings.armAfter} s`);
+    if (settings.honestRuns > 0) extra.push(`ærlige forsøg tilbage: ${honestLeft()}`);
+    if (settings.once) extra.push('kun én gang');
+    if (settings.blind) extra.push('blind');
+    if (extra.length) line(extra.join(' · '), 'off');
     if (plan.laps.length) line(`Næste runde: nr. ${engine.lapIndex + 1} af ${plan.laps.length}`, 'off');
     if (settings.mode === 'date' && plan.dateDigits) line(`Dato: ${plan.dateDigits.replace(/(\d\d)(\d\d)(\d\d)/, '$1-$2-$3')}`, 'off');
   }
-  const last = engine.log.find((e) => e.kind !== 'panik');
+  const last = engine.log.find((e) => e.kind === 'stop' || e.kind === 'lap');
   $('#peekLine').textContent = last
     ? `Sidst: ${last.kind === 'lap' ? `runde ${last.index + 1}` : 'stop'} ægte ${formatCs(last.natural)} → vist ${formatCs(last.shown)}`
     : '';
@@ -485,6 +586,11 @@ function renderLog() {
     const d = document.createElement('div');
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
+    if (e.kind === 'kort') {
+      d.textContent = `${time}  Kort valgt i Tidtagninger: ${prettyCard(e.card)}`;
+      box.appendChild(d);
+      continue;
+    }
     const what = e.kind === 'panik' ? 'PANIK' : e.kind === 'lap' ? `Runde ${e.index + 1}` : 'Stop';
     const mark = { hit: ['✓', 'ok'], partial: ['½', 'part'], natural: ['–', 'nat'] }[e.result] || ['', ''];
     const s1 = document.createElement('span');
@@ -499,38 +605,38 @@ function renderLog() {
   }
 }
 
-// Ændringer under "Indstil" betyder egen opsætning (ingen valgt rutine)
-const touchSetup = (el) => { if (el.closest('[data-pane="setup"]')) settings.routine = ''; };
+// Hver ændring gemmes også i den valgte rutine, så rutinerne har hver sine tal
+function changed(full) {
+  storeActive(settings);
+  saveSettings(settings);
+  if (full) syncPanel(); else { renderPlan(); renderCardPos(); }
+  syncIndicator();
+}
 
 secret.addEventListener('input', (e) => {
   const el = e.target.closest('[data-s]');
   if (!el) return;
-  touchSetup(el);
-  setPath(el.dataset.s, el.type === 'checkbox' ? el.checked : el.value);
-  saveSettings(settings);
-  renderPlan();
-  syncIndicator();
+  const old = getPath(el.dataset.s);
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if (typeof old === 'number' && el.type !== 'checkbox') v = Number(String(v).replace(',', '.')) || 0;
+  setPath(el.dataset.s, v);
+  changed(false);
 });
 secret.addEventListener('change', (e) => {
   const el = e.target.closest('[data-s]');
   if (!el) return;
-  touchSetup(el);
-  setPath(el.dataset.s, el.type === 'checkbox' ? el.checked : el.value);
-  saveSettings(settings);
-  syncPanel();
-  syncIndicator();
+  // Felter inde i rutinelisten: tegn ikke listen om (så tryk på næste rutine ikke går tabt)
+  changed(!el.closest('.rt-input'));
 });
 $$('[data-seg] button', secret).forEach((b) => b.addEventListener('click', () => {
   const path = b.closest('[data-seg]').dataset.seg;
-  touchSetup(b);
   const old = getPath(path);
   setPath(path, typeof old === 'number' ? Number(b.dataset.v) : b.dataset.v);
-  saveSettings(settings);
-  syncPanel();
-  syncIndicator();
+  changed(true);
 }));
-// ---------- faner i panelet + rutiner ----------
-let ptab = 'routines';
+
+// ---------- faner i panelet ----------
+let ptab = 'setup';
 function showPane(name) {
   ptab = name;
   $$('#ptabs button').forEach((b) => b.classList.toggle('on', b.dataset.p === name));
@@ -542,57 +648,126 @@ $$('#ptabs button').forEach((b) => b.addEventListener('click', () => {
   syncPanel();
 }));
 
-function routineRow(r, custom) {
+// ---------- kortvælger (ACAAN) ----------
+function cardPicker() {
+  const box = document.createElement('div');
+  box.className = 'cards';
+  const cur = settings.card.card || '';
+  const suits = document.createElement('div');
+  suits.className = 'card-suits';
+  for (const k of ['S', 'H', 'C', 'D']) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = SUITS[k];
+    b.className = (k === 'H' || k === 'D' ? 'red' : '') + (cur.endsWith(k) ? ' on' : '');
+    b.addEventListener('click', () => {
+      const v = cur ? cur.slice(0, -1) : 'A';
+      settings.card.card = v + k;
+      changed(true);
+    });
+    suits.appendChild(b);
+  }
+  const vals = document.createElement('div');
+  vals.className = 'card-vals';
+  for (const v of VALUES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = v;
+    b.className = cur && cur.slice(0, -1) === v ? 'on' : '';
+    b.addEventListener('click', () => {
+      const k = cur ? cur.slice(-1) : 'S';
+      settings.card.card = v + k;
+      changed(true);
+    });
+    vals.appendChild(b);
+  }
+  const res = document.createElement('div');
+  res.className = 'card-res';
+  box.append(suits, vals, res);
+  return box;
+}
+
+function renderCardPos() {
+  const c = settings.card;
+  const cards = stackCards(c.stack, c.custom);
+  const pos = cardPosition(c.card, cards, c.offset, c.fromBottom);
+  const txt = !cards ? 'Egen stak er ugyldig (skal være 52 forskellige kort)'
+    : pos ? `${prettyCard(c.card)} ligger som nr. ${pos}` : 'Vælg kort';
+  $$('.card-res', secret).forEach((el) => { el.textContent = txt; });
+  const sel = $('#stackSel');
+  if (sel && !sel.options.length) {
+    for (const [k, v] of Object.entries(STACKS)) sel.add(new Option(v.name, k));
+    sel.add(new Option('Egen stak', 'custom'));
+  }
+}
+
+// ---------- rutiner ----------
+let editMode = false;
+
+function routineRow(r, i, n) {
   const on = settings.routine === r.id;
   const wrap = document.createElement('div');
-  wrap.className = 'rt' + (on ? ' on' : '');
+  wrap.className = 'rt' + (on ? ' on' : '') + (editMode ? ' edit' : '');
   const row = document.createElement('button');
   row.type = 'button';
   row.className = 'rt-row';
-  row.dataset.rt = r.id;
   const txt = document.createElement('span');
   txt.className = 'rt-text';
   const b = document.createElement('b');
   b.textContent = r.name;
   const sm = document.createElement('small');
-  sm.textContent = custom ? 'Egen rutine' : r.desc;
+  sm.textContent = r.desc || '';
   txt.append(b, sm);
   const chk = document.createElement('span');
   chk.className = 'rt-check';
-  chk.textContent = on ? '✓' : '';
+  chk.textContent = on && !editMode ? '✓' : '';
   row.append(txt, chk);
   wrap.appendChild(row);
-  if (custom) {
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'rt-del';
-    del.textContent = 'Slet';
-    del.addEventListener('click', () => {
-      settings.custom = settings.custom.filter((x) => x.id !== r.id);
-      if (settings.routine === r.id) settings.routine = '';
-      saveSettings(settings);
-      syncPanel();
-    });
-    wrap.appendChild(del);
-  }
-  if (on && r.input) {
-    const lab = document.createElement('label');
-    lab.className = 'rt-input';
-    const sp = document.createElement('span');
-    sp.textContent = r.input.label;
-    const inp = document.createElement(r.input.textarea ? 'textarea' : 'input');
-    inp.className = 'inp wide';
-    inp.dataset.s = r.input.path;
-    inp.setAttribute('inputmode', r.input.im || 'decimal');
-    inp.setAttribute('autocomplete', 'off');
-    inp.placeholder = r.input.ph || '';
-    if (r.input.textarea) inp.rows = 3;
-    inp.value = getPath(r.input.path) ?? '';
-    lab.append(sp, inp);
-    wrap.appendChild(lab);
+
+  if (editMode) {
+    const tools = document.createElement('div');
+    tools.className = 'rt-tools';
+    const tool = (label, cls, fn, disabled) => {
+      const t = document.createElement('button');
+      t.type = 'button';
+      t.textContent = label;
+      if (cls) t.className = cls;
+      t.disabled = !!disabled;
+      t.addEventListener('click', (e) => { e.stopPropagation(); fn(); saveSettings(settings); syncPanel(); syncIndicator(); });
+      tools.appendChild(t);
+    };
+    tool('↑', '', () => moveRoutine(settings, r.id, -1), i === 0);
+    tool('↓', '', () => moveRoutine(settings, r.id, 1), i === n - 1);
+    tool('Rediger', '', () => { selectRoutine(settings, r.id); runsDone = 0; editMode = false; showPane('setup'); });
+    tool('Omdøb', '', () => { const nm = prompt('Nyt navn', r.name); if (nm) renameRoutine(settings, r.id, nm); });
+    tool('Kopi', '', () => duplicateRoutine(settings, r.id));
+    tool('Slet', 'danger', () => { if (confirm(`Slet "${r.name}"?`)) deleteRoutine(settings, r.id); });
+    wrap.appendChild(tools);
+  } else if (on && r.input) {
+    if (r.input.type === 'card') {
+      wrap.appendChild(cardPicker());
+    } else {
+      const lab = document.createElement('label');
+      lab.className = 'rt-input';
+      const sp = document.createElement('span');
+      sp.textContent = r.input.label;
+      const inp = document.createElement(r.input.textarea ? 'textarea' : 'input');
+      inp.className = 'inp wide';
+      inp.dataset.s = r.input.path;
+      inp.setAttribute('inputmode', r.input.im || 'decimal');
+      inp.setAttribute('autocomplete', 'off');
+      inp.placeholder = r.input.ph || '';
+      if (r.input.textarea) inp.rows = 3;
+      inp.value = getPath(r.input.path) ?? '';
+      lab.append(sp, inp);
+      wrap.appendChild(lab);
+    }
   }
   row.addEventListener('click', () => {
-    applyRoutine(settings, r.id);
+    if (editMode) return;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    selectRoutine(settings, r.id);
+    runsDone = 0;
     saveSettings(settings);
     syncPanel();
     syncIndicator();
@@ -602,28 +777,55 @@ function routineRow(r, custom) {
 
 function renderRoutines() {
   const list = $('#rtList');
-  const own = $('#rtCustom');
   if (secret.contains(document.activeElement) && document.activeElement.closest('.rt-input')) return;
   list.textContent = '';
-  own.textContent = '';
-  ROUTINES.forEach((r) => list.appendChild(routineRow(r, false)));
-  (settings.custom || []).forEach((c) => own.appendChild(routineRow(c, true)));
-  if (!(settings.custom || []).length) {
+  const all = settings.routines;
+  all.forEach((r, i) => list.appendChild(routineRow(r, i, all.length)));
+  if (!all.length) {
     const d = document.createElement('div');
     d.className = 'cell dim';
-    d.textContent = 'Ingen endnu – gem fra "Indstil"';
-    own.appendChild(d);
+    d.textContent = 'Ingen rutiner';
+    list.appendChild(d);
   }
+  $('#rtEdit').textContent = editMode ? 'Færdig' : 'Rediger';
+  const r = findRoutine(settings, settings.routine);
+  $('#curRoutine').textContent = r ? r.name : 'Egen opsætning (ingen rutine valgt)';
+  $('#renameCur').hidden = !r;
+  $('#cardInputBox').textContent = '';
+  if (settings.mode === 'card') $('#cardInputBox').appendChild(cardPicker());
+  renderCardPos();
 }
 
+$('#rtEdit').addEventListener('click', () => { editMode = !editMode; renderRoutines(); });
+$('#rtNew').addEventListener('click', () => {
+  const name = prompt('Navn på den nye rutine (laves ud fra de nuværende indstillinger)', '');
+  if (!name || !name.trim()) return;
+  storeActive(settings);
+  newRoutine(settings, name.trim());
+  saveSettings(settings);
+  syncPanel();
+});
+$('#rtRestore').addEventListener('click', () => {
+  const n = restoreBuiltins(settings);
+  saveSettings(settings);
+  syncPanel();
+  alert(n ? `${n} standardrutine(r) lagt tilbage` : 'Alle standardrutiner findes allerede');
+});
 $('#saveRoutine').addEventListener('click', () => {
   const name = prompt('Navn på rutinen', '');
   if (!name || !name.trim()) return;
-  snapshotRoutine(settings, name.trim());
+  storeActive(settings);
+  newRoutine(settings, name.trim());
   saveSettings(settings);
-  showPane('routines');
   syncPanel();
 });
+$('#renameCur').addEventListener('click', () => {
+  const r = findRoutine(settings, settings.routine);
+  if (!r) return;
+  const nm = prompt('Nyt navn', r.name);
+  if (nm) { renameRoutine(settings, r.id, nm); saveSettings(settings); syncPanel(); }
+});
+void BUILTIN;
 
 const stepList = (d) => {
   const n = listLines(settings.list.text).length || 1;
@@ -679,6 +881,7 @@ window.addEventListener('pagehide', saveState);
 
 // ---------- start ----------
 loadState();
+renderCardPos();
 fixHeight();
 measureSafeTop();
 setTab(tab, false);

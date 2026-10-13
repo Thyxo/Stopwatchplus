@@ -5,17 +5,24 @@ export const SETTINGS_KEY = 'ur-stopur-indstillinger-v1';
 export const DEFAULTS = {
   active: true,
   routine: 'hh', // valgt rutine ('' = egen opsætning)
-  custom: [], // egne gemte rutiner
+  custom: [], // (gammelt format – flyttes ind i routines)
+  routines: [], // alle rutiner med hver sin kopi af indstillingerne (se routines.js)
+  routinesSeeded: false,
   mode: 'single', // single | sequence | date | code | list
   single: { value: '37', placement: 'hh' }, // auto | hh | sshh | mmsshh
   sequence: { text: '05 12 17 23 28 31 36', per: 2, stopTakes: true },
-  date: { which: 'tomorrow', custom: '', placement: 'laps', stopTakes: true }, // laps | sshh | mmsshh
+  date: { which: 'tomorrow', custom: '', plusMin: 0, placement: 'laps', stopTakes: true }, // which: tomorrow|today|custom|clock
+  card: { stack: 'mnemonica', custom: '', card: 'AS', offset: 0, fromBottom: false, placement: 'hh', timerInput: true },
   code: { value: '2100', placement: 'sshh', stopTakes: true }, // sshh | mmss | hh | laps
   list: { text: '47 12 05\n112 08 03', index: 0, placement: 'laps', stopTakes: true, advance: true },
   blind: false, // tilskueren ser ikke skærmen ved stop → målet vises altid
   jumpTol: 0, // tilladt synligt spring i cs (0, 50, 100, 200)
   miss: 'hh', // hvis målet ikke kan nås usynligt: 'hh' = ram hundrededele, 'none' = ærligt
   onReset: 'restart', // talrække ved Nulstil: 'restart' | 'continue'
+  armAfter: 0, // force først aktiv efter så mange sekunder (0 = med det samme)
+  honestRuns: 0, // så mange ærlige forsøg (start → nulstil) først
+  once: false, // slå force fra efter første forsøg med force
+  peekHold: true, // hold fingeren på tallet → se det sidste stop efter Nulstil
   indicator: false, // diskret prik når force er klar
 };
 
@@ -54,6 +61,7 @@ export function engineOptions(s) {
     jumpTol: Number(s.jumpTol) || 0,
     miss: s.miss === 'none' ? 'none' : 'hh',
     onReset: s.onReset === 'continue' ? 'continue' : 'restart',
+    armAfter: Math.max(0, Number(s.armAfter) || 0),
   };
 }
 

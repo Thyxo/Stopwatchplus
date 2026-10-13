@@ -145,9 +145,11 @@ export class ForceEngine {
     if (this.onLog) this.onLog(entry);
   }
 
-  activePlan() {
+  // dcs: aktuel visning. Før "armAfter" sekunder er force ikke aktiv endnu.
+  activePlan(dcs = Infinity) {
     const o = this.getOptions();
     if (!o.active) return { o, plan: null };
+    if (o.armAfter > 0 && dcs < o.armAfter * 100) return { o, plan: null, unarmed: true };
     let plan = null;
     try { plan = this.getPlan(); } catch { plan = null; }
     return { o, plan };
@@ -157,7 +159,8 @@ export class ForceEngine {
   // jump = hvor meget totalen springer frem (0 = totalen kører uændret videre).
   decideLap({ dcs, sumLaps, analog = false }) {
     const ccs = dcs - sumLaps;
-    const { o, plan } = this.activePlan();
+    const { o, plan, unarmed } = this.activePlan(dcs);
+    if (unarmed) return this.finish('lap', { lap: ccs, jump: 0, result: 'natural', natural: ccs, index: this.lapIndex });
     const i = this.lapIndex++;
     const pat = plan && plan.laps && i < plan.laps.length ? plan.laps[i] : null;
     if (!pat || isFree(pat)) {
@@ -177,7 +180,7 @@ export class ForceEngine {
   // Stop trykket. Returnerer { total } i cs – det tal, uret fryser på.
   decideStop({ dcs, sumLaps, analog = false }) {
     const ccs = dcs - sumLaps;
-    const { o, plan } = this.activePlan();
+    const { o, plan } = this.activePlan(dcs);
     let pat = null;
     let target = 'total';
     if (plan && plan.stop) pat = plan.stop;
