@@ -19,6 +19,10 @@ Repoet er et statisk site. Vercel-projektet er koblet til GitHub, så hvert push
 - push til `main` → produktion
 - push til andre branches → preview-link
 
+Vercel-projekt: **stopwatchplus** (team *thyxo's projects*)
+- Produktion (fra `main`): **https://stopwatchplus.vercel.app**
+- Andre adresser (`stopwatchplus-git-…`, `stopwatchplus-<hash>-…`) kræver Vercel-login (standard-beskyttelse, samme som Calcplus).
+
 Ingen build-kommando og ingen output-mappe (roden udgives som den er). `vercel.json` sørger for, at `sw.js` aldrig caches af CDN'et.
 
 ### Installér på iPhone
