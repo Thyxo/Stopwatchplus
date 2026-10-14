@@ -85,13 +85,13 @@ Blind, diskret prik, hold-peek til/fra, tilladt synligt spring, hvad der sker hv
 2. Tilskueren nævner et kort.
 3. **Side 1 → 2: værdien.** Start swipet på værdiens ikon:
 
-   | Værdi | Ikon (række, kolonne) |
+   | Værdi | Ikon (række 3-6, kolonne 2-4) |
    |---|---|
-   | 1 (es) | Påmindelser (række 2, kolonne 4) |
-   | 2 · 3 · 4 | Vejr · Duolingo · Apple TV (række 3) |
-   | 5 · 6 · 7 | Snapchat · Kort · Watch (række 4) |
-   | 8 · 9 · 10 | Sundhed · Kalender · Spotify-ikonet (række 5) |
-   | 11 · 12 · 13 (J Q K) | Discord · AirPods · YouTube (række 6) |
+   | 1 · 2 · 3 | Vejr · Duolingo · Apple TV (række 3) |
+   | 4 · 5 · 6 | Snapchat · Kort · Watch (række 4) |
+   | 7 · 8 · 9 | Sundhed · Kalender · Spotify-ikonet (række 5) |
+   | 10 · 11 · 12 (10 J Q) | Discord · AirPods · YouTube (række 6) |
+   | 13 (K) | Det sorte tomme felt under ikonerne (hele bredden) |
 
 4. **Side 2 → 3: kuløren** (CHSD). Start swipet et vilkårligt sted i rækken: **række 3 = ♣**, **række 4 = ♥**, **række 5 = ♠**, **række 6 = ♦**.
 5. **Tryk på Ur** (side 3) – **force slås altid til** (også hvis den var slået fra) – stopuret åbner ud af ikonet med kortet valgt. Tilskueren starter og stopper; hundrededelene viser kortets plads.

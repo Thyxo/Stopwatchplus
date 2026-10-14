@@ -2,8 +2,8 @@
 // Porteret fra Notes-appen (samme fjeder, gummibånd og åbne-animation).
 //
 //  Swipe side 1 → 2: ikonet under fingeren, når swipet STARTER, er værdien (1-13):
-//      1 = Påmindelser (række 2, kolonne 4), 2-4 = række 3, 5-7 = række 4, 8-10 = række 5, 11-13 = række 6
-//      (kolonne 2-4, fra toppen og ned).
+//      1-3 = række 3, 4-6 = række 4, 7-9 = række 5, 10-12 = række 6 (kolonne 2-4, fra toppen og ned),
+//      13 = det sorte tomme felt under ikonerne.
 //  Swipe side 2 → 3: rækken under fingeren er kuløren (CHSD):
 //      række 3 = ♣ klør, række 4 = ♥ hjerter, række 5 = ♠ spar, række 6 = ♦ ruder.
 //  I alle andre tilstande end Kort er det i stedet tal (som i Notes-appen): swipe 1 = første ciffer,
@@ -20,14 +20,17 @@ const OCCUPIED = [
   ['1111', '1111', '1111', '1111', '1111', '1111'],
   ['1111', '1110', '0000', '1111', '1111', '1111'],
 ];
-// [række, kolonne] (0-baseret) → værdi 1-13 på side 1
+// [række, kolonne] (0-baseret) → værdi 1-12 på side 1 (række 3-6, kolonne 2-4, fra toppen og ned).
+// 13 (konge) = det sorte tomme felt under app-ikonerne (hele bredden), se BLANK_TOP/BLANK_BOTTOM.
 export const VALUE_CELLS = {
-  '1,3': 1,
-  '2,1': 2, '2,2': 3, '2,3': 4,
-  '3,1': 5, '3,2': 6, '3,3': 7,
-  '4,1': 8, '4,2': 9, '4,3': 10,
-  '5,1': 11, '5,2': 12, '5,3': 13,
+  '2,1': 1, '2,2': 2, '2,3': 3,
+  '3,1': 4, '3,2': 5, '3,3': 6,
+  '4,1': 7, '4,2': 8, '4,3': 9,
+  '5,1': 10, '5,2': 11, '5,3': 12,
 };
+export const KING_VALUE = 13;
+const BLANK_TOP = 1640 + 225 + 10; // under nederste ikonrække
+const BLANK_BOTTOM = 2045; // over side-prikkerne
 // Tal-input (alle andre tilstande end Kort) – som i Notes-appen, ens på side 1 og 2:
 // 0 = række 3 kolonne 3, 1-9 = 3×3 nederst (række 4-6, kolonne 2-4)
 export const DIGIT_CELLS = {
@@ -85,7 +88,7 @@ export function initHome({ app, onLaunch }) {
     const half = (ICON_COLS[1] - ICON_COLS[0]) / 2;
     const col = ICON_COLS.findIndex((l) => Math.abs(x - (l + HOME_ICON / 2)) <= half);
     const row = ICON_ROWS.findIndex((t) => Math.abs(y - (t + HOME_ICON / 2)) <= half);
-    if (col < 0 || row < 0) return null;
+    if (col < 0 || row < 0) return y >= BLANK_TOP && y <= BLANK_BOTTOM ? { blank: true } : null;
     return { row, col };
   }
 
@@ -160,7 +163,7 @@ export function initHome({ app, onLaunch }) {
   const setDot = (i) => dots.forEach((d, k) => d.classList.toggle('on', k === i));
 
   function showPress(cell) {
-    if (!cell || OCCUPIED[page][cell.row][cell.col] !== '1') return;
+    if (!cell || cell.blank || OCCUPIED[page][cell.row][cell.col] !== '1') return;
     press.style.left = `${(ICON_COLS[cell.col] / HOME_W) * 100}%`;
     press.style.top = `${((ICON_ROWS[cell.row] - 140) / 1900) * 100}%`;
     press.classList.add('on');
@@ -235,7 +238,7 @@ export function initHome({ app, onLaunch }) {
       // Swipe fremad registrerer ikonet/rækken under fingeren, hvor swipet startede
       if (target === d.startPage + 1 && d.cell) {
         const key = `${d.cell.row},${d.cell.col}`;
-        if (d.startPage === 0) input[0] = VALUE_CELLS[key] ?? input[0];
+        if (d.startPage === 0) input[0] = d.cell.blank ? KING_VALUE : (VALUE_CELLS[key] ?? input[0]);
         if (d.startPage === 1) input[1] = SUIT_ROWS[d.cell.row] ?? input[1];
         if (d.startPage < 2 && DIGIT_CELLS[key] !== undefined) digits[d.startPage] = DIGIT_CELLS[key];
       }
@@ -252,7 +255,7 @@ export function initHome({ app, onLaunch }) {
     }
     if (d.lock === null && e.type === 'pointerup') {
       const cell = cellAt(e.clientX, e.clientY);
-      if (cell && page === UR_CELL.page && cell.row === UR_CELL.row && cell.col === UR_CELL.col) launch();
+      if (cell && !cell.blank && page === UR_CELL.page && cell.row === UR_CELL.row && cell.col === UR_CELL.col) launch();
     }
   }
 
