@@ -220,6 +220,14 @@ function onLeft() {
   afterAction();
 }
 
+// Nulstil stopuret stille (også hvis det kører), så en rutine altid starter fra 00.00,00
+function freshStopwatch() {
+  if (sw.state === 'idle') return;
+  if (sw.engine) sw.engine.resetRun();
+  sw.clear();
+  afterAction();
+}
+
 function afterAction() {
   updateButtons();
   buildLaps();
@@ -938,6 +946,7 @@ const perform = initHome({
     settings.active = true;
     saveSettings(settings);
     runsDone = 0;
+    freshStopwatch();
     setTab('stopwatch', false);
     syncIndicator();
   },
@@ -945,6 +954,8 @@ const perform = initHome({
 $('#performBtn').addEventListener('click', () => {
   if (performance.now() - openedAt < 400) return;
   settings.active = true; // perform betyder altid force til
+  freshStopwatch();
+  runsDone = 0;
   storeActive(settings);
   saveSettings(settings);
   closeSecret();
