@@ -92,14 +92,23 @@ Der er ingen indbygget hjemmeskærm: trykker du Perform uden opsætning, åbner 
 
 **Tal (Tid, Kode, Række):** cifrene bliver dit tal, fx 3 og 7 → 37 (foranstillet nul bevares: 0 og 7 → 07).
 
-**Kort (ACAAN):** 1. ciffer = kulør, 2. ciffer = værdi.
+**Kort (ACAAN)** – som den oprindelige kortvælger, målt på din egen hjemmeskærm (de 4 nederste ikonrækker):
 
-| 1. ciffer | Kulør | 2. ciffer |
-|---|---|---|
-| 1 · 2 · 3 · 4 | ♣ · ♥ · ♠ · ♦ | 1 = E, 2-9, 0 = 10 |
-| 5 · 6 · 7 · 8 | ♣ · ♥ · ♠ · ♦ | 1 = B, 2 = D, 3 = K |
+1. **Side 1 → 2: værdien.** Start swipet på værdiens ikon (kolonne 2-4):
 
-Fx **3·7 = 7♠**, **2·0 = 10♥**, **6·2 = D♥**, **8·3 = K♦**. Ugyldig kode → kortet fra før beholdes. Panelets log viser det valgte kort.
+   | Værdi | Ikon |
+   |---|---|
+   | 1 · 2 · 3 | 4. nederste række |
+   | 4 · 5 · 6 | 3. nederste række |
+   | 7 · 8 · 9 | 2. nederste række |
+   | 10 · J · Q | nederste række |
+   | K | det sorte tomme felt under ikonerne (hele bredden) |
+
+   På dine screenshots: Vejr · Duolingo · Apple TV = 1-3, … Discord · AirPods · YouTube = 10 J Q.
+2. **Side 2 → 3: kuløren.** Start swipet hvor som helst i rækken: 4. nederste = ♣, 3. = ♥, 2. = ♠, nederste = ♦ (CHSD).
+3. **Tryk på Ur.**
+
+Swiper du forkert, så swipe tilbage og om igen – det sidste swipe tæller. Mangler værdi eller kulør, beholdes den del fra kortet før. Panelets log viser det valgte kort. (Stopuret lytter selv på swipene – `fakehome.js` er uændret.)
 
 **Reserve:** fanen **Tidtagninger** – timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦), min. = værdi (1-13). Eller vælg kortet i panelet.
 

@@ -9,7 +9,7 @@ import {
   renameRoutine, deleteRoutine, moveRoutine, restoreBuiltins,
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
-import { numberFromDigits, cardFromDigits } from './fhinput.js';
+import { numberFromDigits, cellAt as homeCellAt, valueAt, suitAt, cardFromInput } from './fhinput.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -909,7 +909,7 @@ const INFO = {
   timerHand: 'Viseren på Tidtagninger-ikonet nederst peger på kl. 9, når force er klar til næste stop. Ellers står den som normalt.',
   indicator: 'En næsten usynlig mørkegrå prik øverst i midten, når force er klar.',
   performStart: 'Appen åbner på din egen falske hjemmeskærm (hvis du har opsat en), så du kan taste kort eller tal ind, før stopuret vises.',
-  homeSetup: 'Tag 3 screenshots af dine hjemmeskærm-sider med Ur på side 3 (ensfarvet baggrund). Guiden måler selv ikonerne. Tal: swipe fra et ciffer-ikon (højre 3×3-blok nederst = 1-9, ikonet over midten = 0) på side 1 og 2, tryk Ur. Kort: 1. ciffer = kulør 1♣ 2♥ 3♠ 4♦ og 2. = værdi (1 = es, 0 = 10) – billedkort: 5♣ 6♥ 7♠ 8♦ og 1 = B, 2 = D, 3 = K. Fx 3·7 = 7♠, 6·2 = D♥. 3 tryk på et tomt sted åbner panelet.',
+  homeSetup: 'Tag 3 screenshots af dine hjemmeskærm-sider med Ur på side 3 (ensfarvet baggrund). Guiden måler selv ikonerne. Tal: swipe fra et ciffer-ikon (højre 3×3-blok nederst = 1-9, ikonet over midten = 0) på side 1 og 2, tryk Ur. Kort: swipe side 1 → 2 fra værdien (4 nederste rækker, kolonne 2-4 = 1-12, det sorte felt under ikonerne = K), side 2 → 3 fra kulørens række (4 nederste rækker = ♣ ♥ ♠ ♦). 3 tryk på et tomt sted åbner panelet.',
   peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
   digitW: 'Hvor tynde de store tal er. Læg appen ved siden af den rigtige Ur i app-skifteren og justér, til stregerne er ens. Lavere = tyndere.',
   jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
@@ -944,11 +944,12 @@ addInfoButtons(secret);
 
 // ---------- perform: falsk hjemmeskærm (fakehome.js fra notes-app) ----------
 // Ingen indbygget hjemmeskærm: brugeren opsætter sin egen med Ur-ikonet på side 3.
-// To swipes giver to cifre → dit tal (Tid/Kode/Række) eller et kort via kort-koden.
+// Tal (Tid/Kode/Række): FakeHome's to cifre. Kort: værdi + kulør som den gamle kortvælger.
+let cardIn = [null, null]; // [værdi 1-13, kulør] fra swipet side 1 → 2 og side 2 → 3
 function onHomeDigits(digits) {
   const number = numberFromDigits(digits);
   if (settings.mode === 'card') {
-    const card = cardFromDigits(digits);
+    const card = cardIn[0] || cardIn[1] ? cardFromInput(cardIn[0], cardIn[1], settings.card.card) : null;
     if (card) {
       settings.card.card = card;
       engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card, via: 'hjemmeskærm' });
@@ -978,8 +979,34 @@ const fakeHome = window.FakeHome
     accentText: '#000',
     onNumber: (_number, digits) => onHomeDigits(digits),
     onSecret: () => openSecret(),
+    onPerformChange: (on) => { if (on) cardIn = [null, null]; },
   })
   : null;
+
+// Kortvælgeren: lyt selv på hjemmeskærmen (fakehome.js rettes ikke). Feltet, hvor et
+// swipe starter, tæller, hvis swipet ender på næste side – det sidste swipe tæller.
+if (fakeHome) {
+  const fh = document.querySelector('.fh-home');
+  const stage = fh.querySelector('.fh-stage');
+  const shownPage = () => [...fh.querySelectorAll('.fh-dots img')].findIndex((d) => d.classList.contains('on'));
+  let down = null;
+  fh.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return;
+    const geo = fakeHome._geo();
+    if (!geo) return;
+    const r = stage.getBoundingClientRect();
+    const k = r.width / geo.W;
+    down = { id: e.pointerId, page: shownPage(), cell: homeCellAt(geo, (e.clientX - r.left) / k, (e.clientY - r.top) / k), geo };
+  });
+  fh.addEventListener('pointerup', (e) => {
+    const d = down;
+    if (!d || e.pointerId !== d.id) return;
+    down = null;
+    if (d.page < 0 || d.page > 1 || shownPage() !== d.page + 1) return;
+    cardIn[d.page] = d.page === 0 ? valueAt(d.geo, d.cell) : suitAt(d.geo, d.cell);
+  });
+  fh.addEventListener('pointercancel', () => { down = null; });
+}
 
 $('#performBtn').addEventListener('click', () => {
   if (performance.now() - openedAt < 400 || !fakeHome) return;
