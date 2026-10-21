@@ -104,7 +104,7 @@ button {
 
 .big {
   font-size: calc(90 * var(--u));
-  font-weight: var(--big-w, 150);
+  font-weight: var(--big-w, 110);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   white-space: nowrap;

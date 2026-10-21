@@ -27,7 +27,7 @@ export const DEFAULTS = {
   performStart: false, // åbn appen på den falske hjemmeskærm
   peekHold: true, // hold fingeren på tallet → se det sidste stop efter Nulstil
   indicator: false, // diskret prik når force er klar
-  digitWeight: 150, // tykkelse på de store tal (100-300); den rigtige Ur-app er tyndere end 200
+  digitW: 110, // tykkelse på de store tal (100-300); målt mod den rigtige Ur-app: 110 ≈ 10 px streg
   timerHand: true, // Tidtagninger-ikonets viser peger på kl. 9, når force er klar
 };
 
