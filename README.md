@@ -77,32 +77,33 @@ Blind, diskret prik, hold-peek til/fra, tilladt synligt spring, hvad der sker hv
 
 ---
 
-## 2b. ACAAN med perform mode (falsk hjemmeskærm)
+## 2b. Perform mode (falsk hjemmeskærm via FakeHome)
 
-**Start:** panel → Indstil → **Perform – vis hjemmeskærm** (eller slå *Start på hjemmeskærm* til under Mere, så åbner appen altid der). Skærmen er dine egne skærmbilleder af hjemmeskærmen – den rigtige statuslinje ligger ovenpå.
+Hjemmeskærmen kommer fra modulet `fakehome.js` (kopieret uændret fra [thyxo/notes-app](https://github.com/thyxo/notes-app), se `FAKEHOME.md` dér). **Ret aldrig `fakehome.js` her** – ret i notes-app og kopiér filen ind igen (og bump `VERSION` i `sw.js`).
 
-1. Stak bunken og vælg rutinen **ACAAN** (og stakken under Indstil → Kort).
-2. Tilskueren nævner et kort.
-3. **Side 1 → 2: værdien.** Start swipet på værdiens ikon:
+**Opsætning (én gang):** panel → Indstil → **Opsæt egen hjemmeskærm**.
+1. Lav en ensfarvet (mørk) baggrund – guiden kan lave billedet.
+2. Tag 3 screenshots af dine hjemmeskærm-sider med **Ur på side 3**.
+3. Tryk på Ur-ikonet i forhåndsvisningen → **Gem og brug**.
 
-   | Værdi | Ikon (række 3-6, kolonne 2-4) |
-   |---|---|
-   | 1 · 2 · 3 | Vejr · Duolingo · Apple TV (række 3) |
-   | 4 · 5 · 6 | Snapchat · Kort · Watch (række 4) |
-   | 7 · 8 · 9 | Sundhed · Kalender · Spotify-ikonet (række 5) |
-   | 10 · 11 · 12 (10 J Q) | Discord · AirPods · YouTube (række 6) |
-   | 13 (K) | Det sorte tomme felt under ikonerne (hele bredden) |
+Der er ingen indbygget hjemmeskærm: trykker du Perform uden opsætning, åbner guiden. Opsætningen kan deles som fil med andre apps (Notes m.fl.) under *Del til andre apps* / *Importér opsætning*.
 
-4. **Side 2 → 3: kuløren** (CHSD). Start swipet et vilkårligt sted i rækken: **række 3 = ♣**, **række 4 = ♥**, **række 5 = ♠**, **række 6 = ♦**.
-5. **Tryk på Ur** (side 3) – **force slås altid til** (også hvis den var slået fra) – stopuret åbner ud af ikonet med kortet valgt. Tilskueren starter og stopper; hundrededelene viser kortets plads.
+**Brug:** panel → **Perform – vis hjemmeskærm** (nulstiller stopuret og slår force til). Ikonet under fingeren, når et swipe **starter**, er et ciffer: de ni nederste ikoner i den højre 3×3-blok = **1-9**, ikonet over midten af blokken = **0**. Swipe side 1 → 2 = første ciffer, side 2 → 3 = andet ciffer. **Tryk på Ur** → stopuret vokser ud af ikonet. 3 tryk på et tomt sted åbner panelet.
 
-Swiper du forkert, så swipe tilbage og om igen – det sidste swipe tæller. Mangler værdi eller kulør, beholdes den del fra det kort, der var valgt før. Panelets log viser "Kort valgt på hjemmeskærmen: 7♥".
+**Tal (Tid, Kode, Række):** cifrene bliver dit tal, fx 3 og 7 → 37 (foranstillet nul bevares: 0 og 7 → 07).
 
-**Tal i stedet for kort:** I alle andre tilstande (Tid, Kode, Række) giver de to swipes et **tal**, som i Notes-appen: **0** = række 3, kolonne 3 (Duolingo); **1-9** = 3×3 i række 4-6, kolonne 2-4. Swipe 1 = første ciffer, swipe 2 = andet ciffer (kun ét swipe = ét ciffer). Fx 3 og 7 → dit tal bliver 37.
+**Kort (ACAAN):** 1. ciffer = kulør, 2. ciffer = værdi.
+
+| 1. ciffer | Kulør | 2. ciffer |
+|---|---|---|
+| 1 · 2 · 3 · 4 | ♣ · ♥ · ♠ · ♦ | 1 = E, 2-9, 0 = 10 |
+| 5 · 6 · 7 · 8 | ♣ · ♥ · ♠ · ♦ | 1 = B, 2 = D, 3 = K |
+
+Fx **3·7 = 7♠**, **2·0 = 10♥**, **6·2 = D♥**, **8·3 = K♦**. Ugyldig kode → kortet fra før beholdes. Panelets log viser det valgte kort.
 
 **Reserve:** fanen **Tidtagninger** – timer = kulør (1 ♣, 2 ♥, 3 ♠, 4 ♦), min. = værdi (1-13). Eller vælg kortet i panelet.
 
-> Tag nye skærmbilleder, hvis din hjemmeskærm ændrer sig (notifikationstal, nye apps), og læg dem i `home/` (se `src/home.js` for mål).
+> Tag nye screenshots (Sæt op igen), hvis din hjemmeskærm ændrer sig (notifikationstal, nye apps).
 
 ---
 
@@ -175,7 +176,7 @@ Start igen: panel → *Force aktiv*.
 - **Omgangsrækken** kan i ca. 1 % af runderne skifte sit (lille) sekundtal ved frysning, for at totalen kan blive stående.
 - Fanerne **Verdensur, Alarmer og Tidtagninger** er kun kulisser (enkle, iOS-agtige skærme). Kun stopuret virker.
 - Skriften er San Francisco på iPhone. På Android/PC bruges systemets skrift; tallene skaleres til samme bredde, men ligner mindre.
-- Ikke testet på en fysisk iPhone endnu – tjek især safe-area (notch/Dynamic Island/home-indikator), at 5-tryk øverst til højre registreres i hjemmeskærm-tilstand, og "Føj til hjemmeskærm".
+- Ikke testet på en fysisk iPhone endnu – tjek især safe-area (notch/Dynamic Island/home-indikator), at 3 tryk på et tomt sted åbner panelet fra den falske hjemmeskærm, og "Føj til hjemmeskærm".
 
 ---
 
@@ -225,6 +226,8 @@ src/settings.js       indstillinger (localStorage)
 src/dial.js           analog urskive (SVG)
 src/selftest.js       randomiseret selvtest (Node + i appen)
 src/app.js            UI, gestusser, panel, service worker
+src/fhinput.js        FakeHome-cifre → tal eller kort (kort-koden)
+fakehome.js           falsk hjemmeskærm (kopi fra notes-app – ret den ikke her)
 sw.js                 offline-cache (hæv VERSION ved ændringer)
 ref/                  dine skærmbilleder + ur-ikon.png
 scripts/              ikon-script og selvtest-CLI

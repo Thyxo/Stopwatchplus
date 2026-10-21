@@ -1,6 +1,6 @@
 // Service worker: alt caches ved installation, så appen virker 100 % offline.
 // Hæv VERSION ved ændringer, så telefonen henter den nye udgave.
-const VERSION = 'ur-stopur-v11';
+const VERSION = 'ur-stopur-v12';
 const ASSETS = [
   './',
   'index.html',
@@ -15,15 +15,8 @@ const ASSETS = [
   'src/selftest.js',
   'src/routines.js',
   'src/stacks.js',
-  'src/home.js',
-  'home/page1.webp',
-  'home/page2.webp',
-  'home/page3.webp',
-  'home/dots1.png',
-  'home/dots2.png',
-  'home/dots3.png',
-  'home/dock.webp',
-  'home/ur.png',
+  'src/fhinput.js',
+  'fakehome.js',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

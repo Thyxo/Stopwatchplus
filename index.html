@@ -17,6 +17,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- FakeHome animerer denne ramme ud af app-ikonet (den fylder skærmen) -->
+  <div class="launch-wrap" id="launchWrap">
   <div class="app" id="app" data-tab="stopwatch">
 
     <!-- ============ STOPUR ============ -->
@@ -149,25 +151,6 @@
 
     <div class="indicator" id="indicator" hidden></div>
   </div>
-
-  <!-- ============ PERFORM: FALSK HJEMMESKÆRM ============ -->
-  <div class="home" id="home" aria-hidden="true">
-    <div class="home-stage" id="homeStage">
-      <div class="home-pages">
-        <div class="home-track" id="homeTrack">
-          <img src="home/page1.webp" alt="" draggable="false" />
-          <img src="home/page2.webp" alt="" draggable="false" />
-          <img src="home/page3.webp" alt="" draggable="false" />
-        </div>
-        <div class="home-press" id="homePress"></div>
-      </div>
-      <div class="home-dots" id="homeDots">
-        <img src="home/dots1.png" alt="" draggable="false" />
-        <img src="home/dots2.png" alt="" draggable="false" />
-        <img src="home/dots3.png" alt="" draggable="false" />
-      </div>
-      <img class="home-dock" src="home/dock.webp" alt="" draggable="false" />
-    </div>
   </div>
 
   <!-- ============ HEMMELIGT PANEL ============ -->
@@ -207,6 +190,7 @@
         <section class="pane" data-pane="setup">
           <div class="group">
             <button class="cell btn perform" id="performBtn" type="button">Perform – vis hjemmeskærm (slår force til)</button>
+            <button class="cell btn" id="homeSetupBtn" type="button" data-info="homeSetup">Opsæt egen hjemmeskærm</button>
           </div>
           <div class="cur-rt" data-info="routine"><span>Rutine: <b id="curRoutine"></b></span><button class="link" id="renameCur" type="button">Omdøb</button></div>
           <div class="group-title" data-info="mode">Tilstand</div>
@@ -338,6 +322,7 @@
     </div>
   </div>
 
+  <script src="fakehome.js"></script>
   <script type="module" src="src/app.js"></script>
 </body>
 </html>

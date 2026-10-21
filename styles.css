@@ -691,24 +691,10 @@ select.inp { width: 62%; -webkit-appearance: none; appearance: none; text-align:
 .card-res { margin-top: 8px; font-size: 15px; color: #fff; text-align: center; font-variant-numeric: tabular-nums; }
 #cardInputBox .cards { padding-top: 12px; }
 
-/* ---------- perform: falsk hjemmeskærm (fra Notes-appen) ----------
-   Lagene er udsnit af dine iPhone-skærmbilleder (1179×2556 @3x). Skaleres efter bredden
-   og forankres i bunden. */
-.home { position: fixed; inset: 0; z-index: 30; display: none; overflow: hidden; background: #000; touch-action: none; }
-.home.on { display: block; }
-.home-stage { position: absolute; left: 50%; bottom: 0; width: min(100vw, 440px); transform: translateX(-50%); height: calc(min(100vw, 440px) * 2556 / 1179); }
-.home-stage img { display: block; pointer-events: none; -webkit-user-drag: none; }
-.home-pages { position: absolute; left: 0; width: 100%; top: calc(140 / 2556 * 100%); height: calc(1900 / 2556 * 100%); overflow: hidden; }
-.home-track { display: flex; width: 300%; height: 100%; will-change: transform; }
-.home-track img { width: calc(100% / 3); height: 100%; }
-.home-press { position: absolute; width: calc(225 / 1179 * 100%); height: calc(225 / 1900 * 100%); border-radius: 23%; background: rgba(0, 0, 0, .42); opacity: 0; pointer-events: none; transition: opacity .22s ease; }
-.home-press.on { opacity: 1; transition: none; }
-.home-dots { position: absolute; left: 0; width: 100%; top: calc(2050 / 2556 * 100%); height: calc(80 / 2556 * 100%); }
-.home-dots img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
-.home-dots img.on { opacity: 1; }
-.home-dock { position: absolute; left: 0; width: 100%; top: calc(2140 / 2556 * 100%); height: calc(416 / 2556 * 100%); }
-.app.launching { z-index: 40; }
-.launch-icon { position: absolute; left: 0; z-index: 100; background: url("home/ur.png") center / cover no-repeat; pointer-events: none; }
+/* ---------- perform: FakeHome (fakehome.js) ----------
+   Rammen om appen fylder skærmen, så FakeHome kan lade den vokse ud af app-ikonet.
+   (.app selv er centreret med transform, som animationen ellers ville overskrive.) */
+.launch-wrap { position: fixed; inset: 0; }
 .cell.btn.perform { color: #fff; font-weight: 600; }
 
 /* status-mærke øverst i panelet */

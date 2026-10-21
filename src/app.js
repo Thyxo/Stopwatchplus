@@ -9,7 +9,7 @@ import {
   renameRoutine, deleteRoutine, moveRoutine, restoreBuiltins,
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
-import { initHome, cardFromInput } from './home.js';
+import { numberFromDigits, cardFromDigits } from './fhinput.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -908,7 +908,8 @@ const INFO = {
   blind: 'Tilskueren kigger ikke på skærmen, når de stopper. Så vises hele målet – også sekunder og minutter – uanset hvornår der stoppes.',
   timerHand: 'Viseren på Tidtagninger-ikonet nederst peger på kl. 9, når force er klar til næste stop. Ellers står den som normalt.',
   indicator: 'En næsten usynlig mørkegrå prik øverst i midten, når force er klar.',
-  performStart: 'Appen åbner på den falske hjemmeskærm, så du kan taste kort eller tal ind, før stopuret vises.',
+  performStart: 'Appen åbner på din egen falske hjemmeskærm (hvis du har opsat en), så du kan taste kort eller tal ind, før stopuret vises.',
+  homeSetup: 'Tag 3 screenshots af dine hjemmeskærm-sider med Ur på side 3 (ensfarvet baggrund). Guiden måler selv ikonerne. Tal: swipe fra et ciffer-ikon (højre 3×3-blok nederst = 1-9, ikonet over midten = 0) på side 1 og 2, tryk Ur. Kort: 1. ciffer = kulør 1♣ 2♥ 3♠ 4♦ og 2. = værdi (1 = es, 0 = 10) – billedkort: 5♣ 6♥ 7♠ 8♦ og 1 = B, 2 = D, 3 = K. Fx 3·7 = 7♠, 6·2 = D♥. 3 tryk på et tomt sted åbner panelet.',
   peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
   digitW: 'Hvor tynde de store tal er. Læg appen ved siden af den rigtige Ur i app-skifteren og justér, til stregerne er ens. Lavere = tyndere.',
   jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
@@ -941,41 +942,60 @@ function addInfoButtons(root) {
 }
 addInfoButtons(secret);
 
-// ---------- perform: falsk hjemmeskærm med kort-input ----------
-const perform = initHome({
-  app,
-  onLaunch({ value, suit, number }) {
-    if (settings.mode !== 'card' && number !== null) {
-      // Tal fra hjemmeskærmen → dit tal i Tid/Kode/Række
-      if (settings.mode === 'single') settings.single.value = number;
-      else if (settings.mode === 'code') settings.code.value = number;
-      else if (settings.mode === 'sequence') settings.sequence.text = number;
-      storeActive(settings);
-      saveSettings(settings);
-      engine.record({ kind: 'tal', result: 'natural', natural: null, shown: null, number });
-    } else if (settings.mode === 'card' && (value || suit)) {
-      settings.card.card = cardFromInput(value, suit, settings.card.card);
-      storeActive(settings);
-      saveSettings(settings);
-      engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card: settings.card.card, via: 'hjemmeskærm' });
+// ---------- perform: falsk hjemmeskærm (fakehome.js fra notes-app) ----------
+// Ingen indbygget hjemmeskærm: brugeren opsætter sin egen med Ur-ikonet på side 3.
+// To swipes giver to cifre → dit tal (Tid/Kode/Række) eller et kort via kort-koden.
+function onHomeDigits(digits) {
+  const number = numberFromDigits(digits);
+  if (settings.mode === 'card') {
+    const card = cardFromDigits(digits);
+    if (card) {
+      settings.card.card = card;
+      engine.record({ kind: 'kort', result: 'natural', natural: null, shown: null, card, via: 'hjemmeskærm' });
     }
-    settings.active = true;
-    saveSettings(settings);
-    runsDone = 0;
-    freshStopwatch();
-    setTab('stopwatch', false);
-    syncIndicator();
-  },
-});
+  } else if (number !== null) {
+    if (settings.mode === 'single') settings.single.value = number;
+    else if (settings.mode === 'code') settings.code.value = number;
+    else if (settings.mode === 'sequence') settings.sequence.text = number;
+    engine.record({ kind: 'tal', result: 'natural', natural: null, shown: null, number });
+  }
+  settings.active = true;
+  storeActive(settings);
+  saveSettings(settings);
+  runsDone = 0;
+  freshStopwatch();
+  setTab('stopwatch', false);
+  syncIndicator();
+}
+
+const fakeHome = window.FakeHome
+  ? window.FakeHome.init({
+    appName: 'Ur',
+    assets: false,
+    launchTarget: '#launchWrap',
+    storageKey: 'ur-stopur',
+    accent: '#ff9f0a',
+    accentText: '#000',
+    onNumber: (_number, digits) => onHomeDigits(digits),
+    onSecret: () => openSecret(),
+  })
+  : null;
+
 $('#performBtn').addEventListener('click', () => {
-  if (performance.now() - openedAt < 400) return;
+  if (performance.now() - openedAt < 400 || !fakeHome) return;
   settings.active = true; // perform betyder altid force til
   freshStopwatch();
   runsDone = 0;
   storeActive(settings);
   saveSettings(settings);
   closeSecret();
-  setTimeout(() => perform.enter(), 230);
+  // Uden egen hjemmeskærm åbner FakeHome selv opsætningen
+  setTimeout(() => fakeHome.perform(), 230);
+});
+$('#homeSetupBtn').addEventListener('click', () => {
+  if (performance.now() - openedAt < 400 || !fakeHome) return;
+  closeSecret();
+  setTimeout(() => fakeHome.openSetup({ onClose: openSecret }), 230);
 });
 
 // ---------- højde: iOS-fejl i hjemmeskærm-apps ----------
@@ -986,7 +1006,7 @@ function fixHeight() {
   const portrait = innerHeight > innerWidth;
   heightFixed = isStandalone() && portrait && screen.height > innerHeight + 20;
   // body er position:fixed med overflow:hidden og klipper ellers bunden (fanebjælken) væk
-  for (const el of [document.body, app, secret]) {
+  for (const el of [document.body, $('#launchWrap'), app, secret]) {
     el.style.height = heightFixed ? screen.height + 'px' : '';
     el.style.bottom = heightFixed ? 'auto' : '';
   }
@@ -1024,7 +1044,7 @@ buildLaps();
 syncIndicator();
 render();
 kick();
-if (settings.performStart) perform.enter();
+if (settings.performStart && fakeHome) fakeHome.ready.then(() => { if (fakeHome.hasCustom()) fakeHome.perform(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitBig(); placePill(false); });
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
