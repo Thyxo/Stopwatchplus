@@ -86,7 +86,9 @@ Hjemmeskærmen kommer fra modulet `fakehome.js` (kopieret uændret fra [thyxo/no
 2. Tag 3 screenshots af dine hjemmeskærm-sider med **Ur på side 3**.
 3. Tryk på Ur-ikonet i forhåndsvisningen → **Gem og brug**.
 
-Der er ingen indbygget hjemmeskærm: trykker du Perform uden opsætning, åbner guiden. Opsætningen kan deles som fil med andre apps (Notes m.fl.) under *Del til andre apps* / *Importér opsætning*.
+Der er ingen indbygget hjemmeskærm: trykker du Perform uden opsætning, åbner guiden. Opsætningen kan deles som fil med andre apps (Notes m.fl.) under *Del til andre apps* / *Importér opsætning*. Ved import skal du altid trykke på Ur-ikonet på side 3, før du kan gemme.
+
+**Redigér uden at starte forfra:** *Egen hjemmeskærm → Redigér (ikon og screenshots)* – skift app-ikon, eller udskift ét screenshot (fx når et notifikationstal har ændret sig). Tryk Gem eller Annullér.
 
 **Brug:** panel → **Perform – vis hjemmeskærm** (nulstiller stopuret og slår force til). Ikonet under fingeren, når et swipe **starter**, er et ciffer: de ni nederste ikoner i den højre 3×3-blok = **1-9**, ikonet over midten af blokken = **0**. Swipe side 1 → 2 = første ciffer, side 2 → 3 = andet ciffer. **Tryk på Ur** → stopuret vokser ud af ikonet. 3 tryk på et tomt sted åbner panelet.
 

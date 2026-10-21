@@ -21,7 +21,7 @@
 (() => {
 "use strict";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 /* ---------------- indbygget hjemmeskærm ----------------
    Geometri i screenshot-pixels, målt på rigtige 1179×2556-screenshots på
@@ -247,6 +247,7 @@ const ICONS = {
   import: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5v10M6 8.5l4 4 4-4"/><path d="M4 17.5h12"/></svg>',
   redo: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-1.8-4.3"/><path d="M16.5 2.5v4h-4"/></svg>',
   trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V3.5h4v2M5.5 5.5l.8 11a1.5 1.5 0 0 0 1.5 1.5h4.4a1.5 1.5 0 0 0 1.5-1.5l.8-11"/></svg>',
+  edit: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16H4v-3z"/><path d="M11.5 5.5l3 3"/></svg>',
   chev: '<svg class="fh-row-chev" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1.5 1.5 5 5-5 5"/></svg>',
 };
 
@@ -1243,6 +1244,8 @@ function init(userOptions = {}) {
 
   let setupEl = null;
   let step = 1;
+  let pickingSlot = 0; /* hvilken side et enkelt billede skal ind på */
+  let draft = null; /* gemt/importeret opsætning, der redigeres (se openDraft) */
   let images = [null, null, null];
   let result = null;
   let wallColor = "#000000";
@@ -1270,6 +1273,7 @@ function init(userOptions = {}) {
         <div class="fh-step" data-step="0">
           <div class="fh-current"><canvas data-current></canvas><span class="fh-badge">Bruges i Perform</span></div>
           <div class="fh-list">
+            <button type="button" class="fh-row" data-act="edit"><i>${ICONS.edit}</i><span>Redigér (ikon og screenshots)</span>${ICONS.chev}</button>
             <button type="button" class="fh-row" data-act="export"><i>${ICONS.share}</i><span>Del til andre apps</span>${ICONS.chev}</button>
             <button type="button" class="fh-row" data-act="import"><i>${ICONS.import}</i><span>Importér opsætning</span>${ICONS.chev}</button>
             <button type="button" class="fh-row" data-act="restart"><i>${ICONS.redo}</i><span>Sæt op igen</span>${ICONS.chev}</button>
@@ -1317,6 +1321,9 @@ function init(userOptions = {}) {
             <figure class="fh-tap" data-tap><canvas data-preview="2"></canvas><figcaption><b>Side 3</b>Tryk på ${appName}</figcaption></figure>
           </div>
           <dl class="fh-facts" data-facts></dl>
+          <div class="fh-list" data-replace hidden>
+            ${[0, 1, 2].map((i) => `<button type="button" class="fh-row" data-act="replace-${i}"><i>${ICONS.redo}</i><span>Udskift screenshot af side ${i + 1}</span>${ICONS.chev}</button>`).join("")}
+          </div>
         </div>
       </div>
       <footer class="fh-foot">
@@ -1338,7 +1345,6 @@ function init(userOptions = {}) {
     fitHeight();
 
     const $ = (selector) => setupEl.querySelector(selector);
-    let pickingSlot = 0;
 
     setupEl.addEventListener("click", (event) => {
       const swatch = event.target.closest("[data-color]");
@@ -1368,7 +1374,8 @@ function init(userOptions = {}) {
     $("[data-file-one]").addEventListener("change", (event) => {
       const file = event.target.files[0];
       event.target.value = "";
-      if (file) loadInto(pickingSlot, file);
+      if (file && draft) replaceInDraft(pickingSlot, file);
+      else if (file) loadInto(pickingSlot, file);
     });
     $("[data-file-many]").addEventListener("change", (event) => {
       /* Ældste først — sådan tager man dem, når man swiper side 1 → 3 */
@@ -1389,7 +1396,11 @@ function init(userOptions = {}) {
     const $ = (selector) => setupEl.querySelector(selector);
     switch (act) {
       case "back":
-        if (step === 2 || step === 3) goTo(step - 1);
+        if (draft) {
+          draft = null;
+          result = null;
+          goTo(custom ? 0 : 1);
+        } else if (step === 2 || step === 3) goTo(step - 1);
         else if (step === 1 && custom) goTo(0);
         else closeSetup();
         break;
@@ -1403,6 +1414,15 @@ function init(userOptions = {}) {
       case "alt":
         if (step === 1) $("[data-file-import]").click();
         else if (step === 2) $("[data-file-many]").click();
+        break;
+      case "edit":
+        if (savedRecord) openDraft(savedRecord, false);
+        break;
+      case "replace-0":
+      case "replace-1":
+      case "replace-2":
+        pickingSlot = Number(act.slice(-1));
+        $("[data-file-one]").click();
         break;
       case "restart":
         images = [null, null, null];
@@ -1449,9 +1469,9 @@ function init(userOptions = {}) {
     setupEl.querySelectorAll("[data-step]").forEach((el) => {
       el.hidden = Number(el.dataset.step) !== step;
     });
-    $(".fh-progress").hidden = step === 0;
+    $(".fh-progress").hidden = step === 0 || Boolean(draft);
     setupEl.querySelectorAll(".fh-progress > div").forEach((el, i) => el.classList.toggle("done", i < step));
-    $(".fh-nav span").textContent = step === 2 || step === 3 || (step === 1 && custom) ? "Tilbage" : "Luk";
+    $(".fh-nav span").textContent = draft ? "Annullér" : step === 2 || step === 3 || (step === 1 && custom) ? "Tilbage" : "Luk";
 
     const next = $("[data-act='next']");
     const alt = $("[data-act='alt']");
@@ -1503,7 +1523,9 @@ function init(userOptions = {}) {
     const { geo: g, warnings } = result;
     $("[data-previews]").hidden = false;
     $("[data-facts]").hidden = false;
-    if (!g.notes) showStatus(warnings.length ? "warn" : "todo", warnings.length ? ICONS.warn : ICONS.tap, `Tryk på ${options.appName}`, [`Tryk på ${options.appName}-ikonet på side 3 herunder.`, ...warnings].join(" "));
+    $("[data-replace]").hidden = !draft;
+    if (!g.notes) showStatus(warnings.length ? "warn" : "todo", warnings.length ? ICONS.warn : ICONS.tap, `Vælg ikonet til ${options.appName}`, [`Tryk på det ikon på side 3, der skal åbne ${options.appName}.`, ...warnings].join(" "));
+    else if (draft) showStatus(warnings.length ? "warn" : "", warnings.length ? ICONS.warn : ICONS.check, "Redigér", warnings.length ? warnings.join(" ") : `Tryk på et andet ikon på side 3 for at skifte ${options.appName}-ikonet, eller udskift et screenshot herunder. Tryk Gem, når du er færdig.`);
     else showStatus(warnings.length ? "warn" : "", warnings.length ? ICONS.warn : ICONS.check, "Klar til brug", warnings.length ? warnings.join(" ") : `${options.appName} er valgt. Tjek cifrene og tryk Gem.`);
     $("[data-tap]").classList.toggle("pick", !g.notes);
     $("[data-facts]").innerHTML = `
@@ -1512,7 +1534,7 @@ function init(userOptions = {}) {
       <div><dt>Billede</dt><dd>${g.W} × ${g.H}</dd></div>`;
     drawPreview($("[data-preview='0']"), 0);
     drawPreview($("[data-preview='2']"), 2);
-    next.textContent = "Gem og brug";
+    next.textContent = draft ? "Gem" : "Gem og brug";
     next.disabled = !g.notes;
   }
 
@@ -1524,7 +1546,7 @@ function init(userOptions = {}) {
     canvas.height = Math.round((cssWidth * g.H * ratio) / g.W);
     const ctx = canvas.getContext("2d");
     const k = canvas.width / g.W;
-    ctx.drawImage(images[previewPage], 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(draft ? draft.full[previewPage] : images[previewPage], 0, 0, canvas.width, canvas.height);
     const s = g.icon * k;
     g.rows.forEach((top, row) =>
       g.cols.forEach((left, col) => {
@@ -1621,6 +1643,10 @@ function init(userOptions = {}) {
     const next = setupEl.querySelector("[data-act='next']");
     next.disabled = true;
     next.textContent = "Gemmer…";
+    if (draft) {
+      await saveDraft(g);
+      return;
+    }
     try {
       const pages = [];
       const bottoms = [];
@@ -1697,24 +1723,108 @@ function init(userOptions = {}) {
     if (await shareFile(blob, "hjemmeskaerm.json")) toast("Opsætningen er klar til import");
   }
 
-  async function importData(data) {
+  function parseImport(data) {
     if (data?.type !== EXPORT_TYPE || !data.geo || !data.files) throw new Error("Det er ikke en hjemmeskærm-fil");
     const files = data.files;
-    const record = {
+    return {
       geo: data.geo,
       files: { pages: files.pages.map(dataUrlToBuffer), bottoms: files.bottoms.map(dataUrlToBuffer), noter: dataUrlToBuffer(files.noter) },
       savedAt: Date.now(),
     };
-    await storeRecord(record);
   }
 
+  /* API: gemmer direkte med det ikon, der er i filen */
+  async function importData(data) {
+    await storeRecord(parseImport(data));
+  }
+
+  /* Importeret i guiden: ikonet til netop denne app skal altid vælges, før den gemmes */
   async function importSetup(file) {
     try {
-      await importData(JSON.parse(await file.text()));
-      goTo(0);
-      toast("Importeret — bruges nu i Perform");
+      const record = parseImport(JSON.parse(await file.text()));
+      await openDraft(record, true);
+      toast(`Importeret — vælg ikonet til ${options.appName}`);
     } catch (error) {
       toast(error.message || "Kunne ikke importere", true);
+    }
+  }
+
+  /* ---------- redigering (kladde) ----------
+     En gemt eller importeret opsætning redigeres uden at starte forfra: vælg app-ikonet
+     igen eller udskift ét screenshot. Siderne samles til hele skærmbilleder (baggrund +
+     ikonlag + bundlag), så forhåndsvisning og tryk virker som i trin 3. */
+  function bufferImage(file) {
+    return loadImageFile(new Blob([file.buf], { type: file.type }));
+  }
+
+  async function openDraft(record, pickIcon) {
+    const busy = setupEl.querySelector(".fh-busy");
+    busy.classList.add("on");
+    try {
+      const geo = JSON.parse(JSON.stringify(record.geo));
+      if (pickIcon) geo.notes = null;
+      const strips = await Promise.all(record.files.pages.map(bufferImage));
+      const bottoms = await Promise.all(record.files.bottoms.map(bufferImage));
+      const full = strips.map((strip, i) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = geo.W;
+        canvas.height = geo.H;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = geo.bg;
+        ctx.fillRect(0, 0, geo.W, geo.H);
+        ctx.drawImage(strip, 0, geo.pagesTop, geo.W, geo.pagesH);
+        ctx.drawImage(bottoms[i], 0, geo.dotsTop, geo.W, geo.dotsH);
+        return canvas;
+      });
+      draft = { files: { pages: [...record.files.pages], bottoms: [...record.files.bottoms] }, full, replaced: [null, null, null] };
+      result = { geo, warnings: [] };
+      goTo(3);
+    } finally {
+      busy.classList.remove("on");
+    }
+  }
+
+  async function replaceInDraft(index, file) {
+    const g = result?.geo;
+    if (!draft || !g) return;
+    let img;
+    try {
+      img = await loadImageFile(file);
+    } catch {
+      toast("Billedet kunne ikke åbnes", true);
+      return;
+    }
+    if (img.naturalWidth !== g.W || img.naturalHeight !== g.H) {
+      toast(`Screenshottet skal være ${g.W} × ${g.H} — tag det på samme telefon`, true);
+      return;
+    }
+    draft.full[index] = img;
+    draft.replaced[index] = img;
+    renderResult();
+    toast(`Side ${index + 1} udskiftet — tryk Gem`);
+  }
+
+  async function saveDraft(g) {
+    try {
+      const pages = [...draft.files.pages];
+      const bottoms = [...draft.files.bottoms];
+      for (let i = 0; i < 3; i += 1) {
+        const img = draft.replaced[i];
+        if (!img) continue;
+        pages[i] = await blobFile(drawToCanvas(img, g.W, g.pagesH, 0, g.pagesTop, g.W, g.pagesH));
+        bottoms[i] = await blobFile(drawToCanvas(img, g.W, g.dotsH, 0, g.dotsTop, g.W, g.dotsH));
+      }
+      const appIcon = await blobFile(
+        drawToCanvas(draft.full[2], g.icon, g.icon, g.cols[g.notes.col], g.rows[g.notes.row], g.icon, g.icon),
+      );
+      await storeRecord({ geo: g, files: { pages, bottoms, noter: appIcon }, savedAt: Date.now() });
+      draft = null;
+      result = null;
+      goTo(0);
+      toast("Gemt — bruges nu i Perform");
+    } catch (error) {
+      toast(`Kunne ikke gemme: ${error.message}`, true);
+      renderResult();
     }
   }
 
@@ -1751,6 +1861,7 @@ function init(userOptions = {}) {
     if (!setupEl) buildSetup();
     onSetupClose = onClose || null;
     fitHeight();
+    draft = null;
     ready.then(() => {
       step = custom ? 0 : 1;
       renderSetup();
