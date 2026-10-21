@@ -863,6 +863,21 @@ const stepList = (d) => {
   renderPlan();
 };
 $('#listPrev').addEventListener('click', () => stepList(-1));
+
+// Tykkelse på de store tal (justeres mod den rigtige Ur-app)
+function applyWeight() {
+  const w = Math.min(300, Math.max(100, Number(settings.digitWeight) || 150));
+  document.documentElement.style.setProperty('--big-w', String(w));
+  $('#wVal').textContent = w;
+}
+for (const [id, d] of [['#wMinus', -10], ['#wPlus', 10]]) {
+  $(id).addEventListener('click', () => {
+    settings.digitWeight = Math.min(300, Math.max(100, (Number(settings.digitWeight) || 150) + d));
+    saveSettings(settings);
+    applyWeight();
+  });
+}
+applyWeight();
 $('#listNext').addEventListener('click', () => stepList(1));
 $('#panicBtn').addEventListener('click', () => { panic(); closeSecret(); });
 $('#runSelftest').addEventListener('click', async () => {
@@ -895,6 +910,7 @@ const INFO = {
   indicator: 'En næsten usynlig mørkegrå prik øverst i midten, når force er klar.',
   performStart: 'Appen åbner på den falske hjemmeskærm, så du kan taste kort eller tal ind, før stopuret vises.',
   peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
+  digitWeight: 'Hvor tynde de store tal er. Læg appen ved siden af den rigtige Ur i app-skifteren og justér, til stregerne er ens. Lavere = tyndere.',
   jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
   miss: 'Hvis målet ikke kan nås usynligt (fx stoppede de langt fra sekundet): ram i det mindste hundrededelene, eller vis den ægte tid.',
   onReset: 'Talrække: start forfra efter Nulstil, eller fortsæt med næste tal (fx ét Lotto-tal pr. tilskuer).',
