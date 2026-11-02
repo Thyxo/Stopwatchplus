@@ -11,6 +11,12 @@ export const LIVE_ROUTINE = {
 export const BY = 'stopwatch';
 const onlyDigits = (s) => String(s ?? '').replace(/\D/g, '');
 
+// Antal bogstaver i et navn fra Noter+ (mellemrum, tal og tegn tælles ikke med)
+export function letterCount(name) {
+  const m = String(name ?? '').match(/\p{L}/gu);
+  return m ? m.length : 0;
+}
+
 // Kan cifrene vises som en tid på uret? (1-2 = ,HH · 3-4 = SS,HH · 5-6 = MM.SS,HH)
 export function isValidTime(digits) {
   const d = onlyDigits(digits);

@@ -110,3 +110,10 @@ test('result fra et stop', () => {
   assert.deepEqual(resultFor({ result: 'hit' }, '00.14,37', 7), { value: '00.14,37', digits: '001437', forced: true, by: 'stopwatch', at: 7 });
   assert.equal(resultFor({ result: 'natural' }, '00.03,11').forced, false);
 });
+
+import { letterCount } from '../src/live.js';
+test('letterCount tæller kun bogstaver', () => {
+  assert.equal(letterCount('Søren Åge'), 8);
+  assert.equal(letterCount('Anna-Marie 2'), 9);
+  assert.equal(letterCount(null), 0);
+});

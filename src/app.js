@@ -10,7 +10,7 @@ import {
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
 import { createLink, cleanRoom } from './link.js';
-import { receiveForce, forceToSend, resultFor, targetDigits } from './live.js';
+import { receiveForce, forceToSend, resultFor, targetDigits, letterCount } from './live.js';
 import { numberFromDigits, cellAt as homeCellAt, valueAt, suitAt, cardFromInput } from './fhinput.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -618,7 +618,7 @@ function renderLog() {
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
     if (e.kind === 'noter') {
-      d.textContent = `${time}  Mål fra ${e.by === 'calc' ? 'Lommeregner' : 'Noter'}: ${e.digits}${e.name ? ` (${e.name})` : ''}`;
+      d.textContent = `${time}  Mål fra ${e.by === 'calc' ? 'Lommeregner' : 'Noter'}: ${e.digits}${e.name ? ` (${e.name} · ${letterCount(e.name)} bogst.)` : ''}`;
       box.appendChild(d);
       continue;
     }
@@ -1059,6 +1059,7 @@ function renderLink() {
   const row = (html, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = html; box.appendChild(d); };
   const who = li.by === 'calc' ? 'Lommeregner' : 'Noter';
   row(`Sidste mål fra ${who}: ${li.digits}${li.name ? ` (${li.name})` : ''} kl. ${new Date(li.at).toTimeString().slice(0, 5).replace(':', '.')}`);
+  if (li.name) { const n = letterCount(li.name); row(`Navn: ${li.name} – ${n} ${n === 1 ? 'bogstav' : 'bogstaver'} → forcér ${n} tal`); }
   row(`Vises som: ${li.form}`);
   if (li.note) row(li.note);
   if (li.warn) row('⚠ ' + li.warn, 'warn');
