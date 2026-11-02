@@ -9,6 +9,8 @@ import {
   renameRoutine, deleteRoutine, moveRoutine, restoreBuiltins,
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
+import { createLink, cleanRoom } from './link.js';
+import { receiveForce, forceToSend, resultFor, targetDigits } from './live.js';
 import { numberFromDigits, cellAt as homeCellAt, valueAt, suitAt, cardFromInput } from './fhinput.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -20,13 +22,16 @@ const settings = ensureRoutines(loadSettings());
 
 // Ærlige forsøg: tælles fra panelet sidst blev lukket (eller rutinen valgt)
 let runsDone = 0;
+// Live-forbindelse (se nederst). Erklæret her, fordi motorens log bruger den.
+let link = null;
+let linkStatus = 'off';
 const honestLeft = () => Math.max(0, (settings.honestRuns | 0) - runsDone);
 
 const engine = new ForceEngine({
   getPlan: () => buildPlan(settings, new Date()),
   getOptions: () => ({ ...engineOptions(settings), active: settings.active && honestLeft() === 0 }),
 });
-engine.onLog = () => { if (!secret.hidden) renderLog(); };
+engine.onLog = (entry) => { if (!secret.hidden) renderLog(); sendResult(entry); };
 const sw = new Stopwatch({ engine, now });
 
 // ---------- elementer ----------
@@ -522,6 +527,7 @@ function closeSecret() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   runsDone = 0; // ærlige forsøg tælles fra nu
   editMode = false;
+  sendForce(); // et mål valgt i panelet (rutine, kort …) går til de andre apps
   secret.classList.add('out');
   setTimeout(() => {
     secret.hidden = true;
@@ -552,6 +558,7 @@ function syncPanel() {
   renderPlan();
   renderLog();
   renderRoutines();
+  renderLink();
   showPane(ptab);
   measureSafeTop();
   const st = document.createElement('div');
@@ -610,6 +617,11 @@ function renderLog() {
     const d = document.createElement('div');
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
+    if (e.kind === 'noter') {
+      d.textContent = `${time}  Mål fra ${e.by === 'calc' ? 'Lommeregner' : 'Noter'}: ${e.digits}${e.name ? ` (${e.name})` : ''}`;
+      box.appendChild(d);
+      continue;
+    }
     if (e.kind === 'tal') {
       d.textContent = `${time}  Tal valgt på hjemmeskærmen: ${e.number}`;
       box.appendChild(d);
@@ -656,12 +668,15 @@ secret.addEventListener('change', (e) => {
   if (!el) return;
   // Felter inde i rutinelisten: tegn ikke listen om (så tryk på næste rutine ikke går tabt)
   changed(!el.closest('.rt-input'));
+  if (el.dataset.s === 'link.room') startLink();
+  else sendForce();
 });
 $$('[data-seg] button', secret).forEach((b) => b.addEventListener('click', () => {
   const path = b.closest('[data-seg]').dataset.seg;
   const old = getPath(path);
   setPath(path, typeof old === 'number' ? Number(b.dataset.v) : b.dataset.v);
   changed(true);
+  sendForce();
 }));
 
 // ---------- faner i panelet ----------
@@ -911,6 +926,8 @@ const INFO = {
   performStart: 'Appen åbner på din egen falske hjemmeskærm (hvis du har opsat en), så du kan taste kort eller tal ind, før stopuret vises.',
   homeSetup: 'Tag 3 screenshots af dine hjemmeskærm-sider med Ur på side 3 (ensfarvet baggrund). Guiden måler selv ikonerne. Tal: swipe fra et ciffer-ikon (højre 3×3-blok nederst = 1-9, ikonet over midten = 0) på side 1 og 2, tryk Ur. Kort: swipe side 1 → 2 fra værdien (4 nederste rækker, kolonne 2-4 = 1-12, det sorte felt under ikonerne = K), side 2 → 3 fra kulørens række (4 nederste rækker = ♣ ♥ ♠ ♦). 3 tryk på et tomt sted åbner panelet.',
   peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
+  link: 'Skriv samme kode som i Noter+ og Lommeregneren (3-40 tegn: a-z, 0-9, bindestreg). Mål fra Noter lægges i rutinen "Noter+ (live)" og slår force til. Dine stop sendes tilbage. Uden kode eller net virker stopuret som før.',
+  linkShape: 'Auto (anbefalet): 1-2 cifre vises som hundrededele; længere tal fordeles på runder, 2 cifre pr. runde – det rammes altid usynligt. "Tid når muligt": gyldige tider (sekunder/minutter ≤ 59) vises som tid, fx 1437 → 14,37 – men sekunder/minutter rammes kun, hvis de stopper tæt på (eller med Blind).',
   digitW: 'Hvor tynde de store tal er. Læg appen ved siden af den rigtige Ur i app-skifteren og justér, til stregerne er ens. Lavere = tyndere.',
   jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
   miss: 'Hvis målet ikke kan nås usynligt (fx stoppede de langt fra sekundet): ram i det mindste hundrededelene, eller vis den ægte tid.',
@@ -967,6 +984,7 @@ function onHomeDigits(digits) {
   freshStopwatch();
   setTab('stopwatch', false);
   syncIndicator();
+  sendForce();
 }
 
 const fakeHome = window.FakeHome
@@ -1025,6 +1043,83 @@ $('#homeSetupBtn').addEventListener('click', () => {
   setTimeout(() => fakeHome.openSetup({ onClose: openSecret }), 230);
 });
 
+// ---------- live-forbindelse til Noter+ / Calcplus (relæet, src/link.js) ----------
+// Uden kode (eller uden net) virker stopuret præcis som før.
+const LINK_TEXT = { off: 'Ingen kode', connecting: 'Forbinder …', online: 'Forbundet', offline: 'Offline' };
+
+function renderLink() {
+  const st = $('#linkStatus');
+  st.textContent = LINK_TEXT[linkStatus] || linkStatus;
+  st.className = 'link-status ' + linkStatus;
+  const box = $('#linkIn');
+  const li = settings.link.lastIn;
+  box.hidden = !li;
+  if (!li) return;
+  box.textContent = '';
+  const row = (html, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = html; box.appendChild(d); };
+  const who = li.by === 'calc' ? 'Lommeregner' : 'Noter';
+  row(`Sidste mål fra ${who}: ${li.digits}${li.name ? ` (${li.name})` : ''} kl. ${new Date(li.at).toTimeString().slice(0, 5).replace(':', '.')}`);
+  row(`Vises som: ${li.form}`);
+  if (li.note) row(li.note);
+  if (li.warn) row('⚠ ' + li.warn, 'warn');
+}
+
+function startLink() {
+  if (link) link.close();
+  link = null;
+  const room = cleanRoom(settings.link.room);
+  if (room !== settings.link.room) { settings.link.room = room; saveSettings(settings); $('#linkRoom').value = room; }
+  linkStatus = 'off';
+  if (room.length >= 3) {
+    // Udgangspunkt: det mål, du har nu, er ikke "nyt" – kun senere ændringer sendes
+    settings.link.sentDigits = targetDigits(settings);
+    saveSettings(settings);
+    link = createLink({
+      room,
+      storeKey: 'ur-stopur-link',
+      onState: onLinkState,
+      onStatus: (st) => { linkStatus = st; renderLink(); },
+    });
+    linkStatus = link.status;
+  }
+  renderLink();
+}
+
+function onLinkState(state) {
+  const force = state && state.force;
+  if (!force) return;
+  const before = settings.link.forceAt;
+  const got = receiveForce(settings, force);
+  if (settings.link.forceAt !== before) saveSettings(settings);
+  if (!got) return;
+  runsDone = 0; // som når man vælger en rutine
+  if (sw.state !== 'running') engine.resetRun();
+  engine.record({ kind: 'noter', result: 'natural', digits: got.digits, name: got.name, by: force.by });
+  syncIndicator();
+  if (!secret.hidden) syncPanel();
+  else renderLink();
+}
+
+// Mål sat i stopurets eget panel → de andre apps (kun nye mål, se forceToSend)
+function sendForce() {
+  if (!link) return;
+  const force = forceToSend(settings);
+  if (!force) return;
+  saveSettings(settings);
+  link.publish({ force });
+}
+
+// Hvert Stop (og hver Runde i Række) → result til de andre apps
+function sendResult(entry) {
+  if (!link || !settings.link.send || !entry) return;
+  if (entry.kind !== 'stop' && !(entry.kind === 'lap' && settings.mode === 'sequence')) return;
+  // Stop, der tager næste runde (Række): det viste tal er den sidste rundes tid, ikke totalen
+  const shown = entry.kind === 'stop' && entry.target === 'lap'
+    ? entry.shown - sw.laps.reduce((a, b) => a + b, 0)
+    : entry.shown;
+  link.publish({ result: resultFor(entry, formatCs(shown)) });
+}
+
 // ---------- højde: iOS-fejl i hjemmeskærm-apps ----------
 // I standalone-tilstand kan iOS melde en sidehøjde, der er statuslinjens højde for kort.
 const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
@@ -1071,6 +1166,7 @@ buildLaps();
 syncIndicator();
 render();
 kick();
+startLink();
 if (settings.performStart && fakeHome) fakeHome.ready.then(() => { if (fakeHome.hasCustom()) fakeHome.perform(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitBig(); placePill(false); });
 

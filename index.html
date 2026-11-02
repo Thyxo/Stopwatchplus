@@ -288,6 +288,16 @@
 
         <!-- MERE -->
         <section class="pane" data-pane="more" hidden>
+          <div class="group-title" data-info="link">Forbindelse til Noter+</div>
+          <div class="group">
+            <label class="cell"><span>Kode</span><input class="inp" id="linkRoom" data-s="link.room" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="fx mads-show" /></label>
+            <div class="cell"><span>Status</span><span class="link-status" id="linkStatus">Ingen kode</span></div>
+            <label class="cell"><span>Modtag mål fra Noter</span><input type="checkbox" class="tgl" data-s="link.receive" /></label>
+            <label class="cell"><span>Send stop til Noter</span><input type="checkbox" class="tgl" data-s="link.send" /></label>
+          </div>
+          <div class="group-title" data-info="linkShape">Tallets form på uret</div>
+          <div class="seg" data-seg="link.shape"><button data-v="auto">Auto (anbefalet)</button><button data-v="time">Tid når muligt</button></div>
+          <div class="link-in" id="linkIn" hidden></div>
           <div class="group">
             <label class="cell" data-info="blind"><span>Blind (kigger ikke ved stop)</span><input type="checkbox" class="tgl" data-s="blind" /></label>
             <label class="cell" data-info="timerHand"><span>Viser på Tidtagninger-ikon kl. 9 = klar</span><input type="checkbox" class="tgl" data-s="timerHand" /></label>

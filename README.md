@@ -166,14 +166,42 @@ Start igen: panel → *Force aktiv*.
 
 ---
 
-## 5. Fjernstyring (idé – ikke bygget endnu)
+## 5. Live-forbindelse til Noter+ og Calcplus
 
-**Fjernstyring:** Målet sendes live fra en anden telefon, også mens tilskueren holder stopuret.
-- Lille Node-server (fx på Railway) med WebSocket (`ws`) eller Server-Sent Events, ét "rum" pr. optræden med en kort kode.
-- Din telefon sender `{ "type": "target", "mode": "single", "value": "1437" }`; stopuret lytter og opdaterer `settings` (samme felter som panelet) – motoren læser planen ved hvert tryk, så et nyt mål virker med det samme, selv midt i en kørsel.
-- Stopuret forbinder kun, hvis der er indtastet en rum-kode i panelet, og falder tilbage til panelets mål uden net.
+Stopuret kan modtage forcetallet live fra **Noter+** (Cryptext-navnet som tal, fx "Mads" → 59841) eller **Calcplus**, og sende sine stop tilbage. Det går gennem det fælles relæ på Railway (`https://relay-production-03f5.up.railway.app`). `src/link.js` er en uændret kopi fra Calcplus/Noter+ – ret den dér og kopiér den ind igen.
 
-**Peek:** Stopuret sender hvert tryk til din telefon: `{ "type": "peek", "kind": "stop", "natural": "00.14,05", "shown": "00.14,37", "result": "hit" }`. Data findes allerede (`engine.onLog` i `src/app.js` – det er det, panelets "Seneste tryk" viser), så det er kun forbindelsen, der mangler.
+**Opsætning:** panel → **Mere** → *Forbindelse til Noter+* → skriv **samme kode** som i de andre apps (a-z, 0-9, bindestreg, 3-40 tegn). Status: *Ingen kode / Forbinder … / Forbundet / Offline*.
+
+| Kontakt | Standard | Gør |
+|---|---|---|
+| Modtag mål fra Noter | til | Nyt `force` fra Noter+/Calcplus → stopurets mål |
+| Send stop til Noter | til | Hvert Stop (og hver Runde i Række) → `result` i rummet |
+
+**Når et mål kommer ind** (kun nyere end det sidste, og aldrig stopurets eget):
+- Det lægges i rutinen **Noter+ (live)**, så dine andre rutiner ikke røres. Den rutine du stod i, gemmes først.
+- Force slås til, og ærlige forsøg/tællere nulstilles som ved valg af rutine.
+- Loggen viser "Mål fra Noter: 59841 (mAds)". Panelet viser, hvilken form tallet fik, og evt. en advarsel.
+- Tidsstemplet gemmes, så samme mål ikke bruges igen, når appen genåbnes.
+
+**Tallets form på uret** – *Tallets form: Auto* (anbefalet):
+
+| Tal | Vises som | Hvorfor |
+|---|---|---|
+| 1-2 cifre, fx 37 | Tid: `00.xx,37` | Hundrededele kan altid rammes usynligt |
+| 3+ cifre, fx 59841 | Række: runder `05 · 98 · 41` (Runde, Runde, Stop) | Hver rundes hundrededele rammes usynligt – uanset hvornår der trykkes |
+| Gyldig tid + **Blind** slået til | Tid: `,HH` / `SS,HH` / `MM.SS,HH` | Tilskueren ser ikke uret ved stop, så sekunder/minutter kan også sættes |
+
+Valget: Cryptext-tal har vilkårlige cifre (59841 = 05.98,41 er ikke en tid, fordi sekunder skal være ≤ 59). Selv en gyldig tid som 1437 rammes kun som 14,37, hvis tilskueren stopper tæt på 14 sekunder – ellers kun hundrededelene, og så er tallet ødelagt. Runderne rammer derimod alle cifre usynligt (100 % i selvtesten). Derfor er Række standard for 3+ cifre.
+- *Tid når muligt*: gyldige tider vises som tid (som "Ram sekundet"); ugyldige bliver stadig Række.
+- **Ulige antal cifre**: første runde får et 0 foran (59841 → 05 · 98 · 41) – panelet nævner det.
+- **Langt tal** (over 8 cifre): panelet advarer om, hvor mange runder der skal trykkes.
+
+**Afsendelse:**
+- `result { value: "00.01,41", digits: "000141", forced, by: "stopwatch", at }` ved hvert Stop og hver Runde i Række. Ved Stop i Række er `value` den sidste rundes tid – det er den, der viser tallet.
+- Et mål, du selv sætter i panelet (ændret felt, valgt knap, valgt rutine, lukket panel, tal fra hjemmeskærmen), sendes som `force { digits, name: null, by: "stopwatch", at }` – men kun hvis det er **nyt**. Det samme mål sendes aldrig igen, og et modtaget mål sendes ikke tilbage (det ville nulstille de andre apps' tællere).
+- Uden net gemmes ændringerne og sendes, når forbindelsen er tilbage. Uden kode eller net virker stopuret præcis som før.
+
+**Peek:** Stopurets `result` kan vises i Noter+ (se nedenfor) – så ser du, hvad tilskueren stoppede på, uden at kigge på uret.
 
 ---
 
@@ -193,7 +221,9 @@ Start igen: panel → *Force aktiv*.
 
 ## 7. Hvad er testet
 
-`npm test` (Node 18+, ingen afhængigheder) – **43 tests, alle grønne**:
+`npm test` (Node 18+, ingen afhængigheder) – **56 tests, alle grønne**:
+
+**Live-forbindelse:** tal → form (gyldig tid / række, ulige cifre, for langt tal), modtag force (nyere/ældre `at`, eget `by` ignoreres, modtag slået fra), ingen dobbelt-afsendelse (heller ikke det modtagne mål tilbage). Testet i Chromium mod det rigtige relæ: force 59841 → runder 05 · 98 · 41 → `result` 00.01,41 i rummet; force 37 → stop 00.02,37; ældre force ignoreres; eget mål sendes én gang; uden net virker uret og stoppet sendes senere.
 
 **Rutiner:** alle 14 standardrutiner giver en gyldig plan; hver rutine beholder sine egne tal; ny/omdøb/kopi/flyt/slet/gendan; overlever genindlæsning og flytter gamle egne rutiner over.
 
@@ -237,7 +267,9 @@ src/settings.js       indstillinger (localStorage)
 src/dial.js           analog urskive (SVG)
 src/selftest.js       randomiseret selvtest (Node + i appen)
 src/app.js            UI, gestusser, panel, service worker
-src/fhinput.js        FakeHome-cifre → tal eller kort (kort-koden)
+src/fhinput.js        FakeHome-swipes → tal eller kort
+src/link.js           relæ-klient (kopi fra Calcplus/Noter+ – ret den ikke her)
+src/live.js           live-forbindelse: tallets form, modtag force, send uden dubletter
 fakehome.js           falsk hjemmeskærm (kopi fra notes-app – ret den ikke her)
 sw.js                 offline-cache (hæv VERSION ved ændringer)
 ref/                  dine skærmbilleder + ur-ikon.png

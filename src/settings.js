@@ -29,6 +29,8 @@ export const DEFAULTS = {
   indicator: false, // diskret prik når force er klar
   digitW: 110, // tykkelse på de store tal (100-300); målt mod den rigtige Ur-app: 110 ≈ 10 px streg
   timerHand: true, // Tidtagninger-ikonets viser peger på kl. 9, når force er klar
+  // Live-forbindelse til Noter+ / Calcplus (relæet). Ikke en del af rutinerne.
+  link: { room: '', receive: true, send: true, shape: 'auto', forceAt: 0, sentDigits: '', lastIn: null },
 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));

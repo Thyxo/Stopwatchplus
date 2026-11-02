@@ -695,6 +695,13 @@ select.inp { width: 62%; -webkit-appearance: none; appearance: none; text-align:
    Rammen om appen fylder skærmen, så FakeHome kan lade den vokse ud af app-ikonet.
    (.app selv er centreret med transform, som animationen ellers ville overskrive.) */
 .launch-wrap { position: fixed; inset: 0; }
+/* live-forbindelse */
+.link-status { color: var(--label2, #8e8e93); font-size: 15px; }
+.link-status.online { color: #30d158; }
+.link-status.offline { color: #ff9f0a; }
+.link-in { margin: 6px 16px 14px; font-size: 13px; line-height: 1.4; color: #c7c7cc; }
+.link-in b { color: #fff; }
+.link-in .warn { color: #ff9f0a; }
 .cell.btn.perform { color: #fff; font-weight: 600; }
 
 /* status-mærke øverst i panelet */
