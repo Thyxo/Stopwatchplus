@@ -210,6 +210,7 @@ function onLeft() {
   if (sw.state === 'running') {
     sw.lap(t, { analog: page === 1 });
     lapsBox.scrollTop = 0;
+    syncIndicator();
   } else if (sw.state === 'stopped') {
     lastRun = { total: sw.totalCs(t), laps: sw.laps.slice() }; // til hold-peek
     const res = sw.reset();
@@ -494,6 +495,10 @@ function forceState() {
   const plan = buildPlan(settings, new Date());
   if (!settings.active) return { armed: false, key: 'off', text: 'FORCE FRA – almindeligt stopur' };
   if (plan.error) return { armed: false, key: 'empty', text: `INTET MÅL – ${plan.error.toLowerCase()}` };
+  // Rækken er udskrevet (alle runder brugt) → viseren går tilbage til normal
+  if (plan.laps.length && !plan.stop && sw.engine && sw.engine.lapIndex >= plan.laps.length) {
+    return { armed: false, key: 'spent', text: 'RÆKKEN ER UDSKREVET – almindeligt stopur' };
+  }
   if (honestLeft() > 0) return { armed: false, key: 'wait', text: `VENTER – ${honestLeft()} ærligt forsøg først` };
   return { armed: true, key: 'on', text: 'FORCE KLAR' };
 }
