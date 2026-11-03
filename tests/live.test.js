@@ -117,3 +117,57 @@ test('letterCount tæller kun bogstaver', () => {
   assert.equal(letterCount('Anna-Marie 2'), 9);
   assert.equal(letterCount(null), 0);
 });
+
+// ---------- Fake Google → Cryptext ----------
+import { googleToForce, DUP_MS } from '../src/live.js';
+// Testtabel i samme form som Noter+'s wordToDigits (den rigtige ligger i src/cryptext.js)
+const fakeW2D = (w) => {
+  const T = { m: '1', a: '4', d: '8', s: '95' };
+  const unsupported = [];
+  let digits = '';
+  for (const c of [...String(w).toLowerCase()].reverse()) { if (T[c]) digits += T[c]; else unsupported.push(c); }
+  return { digits, name: w, unsupported };
+};
+
+test('google: ord → force med by "google", kun nyere end googleAt', () => {
+  const st = fresh();
+  const g = googleToForce(st, { q: 'mads', at: 100, via: 'search' }, fakeW2D);
+  assert.deepEqual(g.force, { digits: '95841', name: 'mads', by: 'google', at: 100 });
+  assert.equal(st.link.googleAt, 100);
+  assert.equal(googleToForce(st, { q: 'mads', at: 100 }, fakeW2D), null); // samme ord igen
+  assert.equal(googleToForce(st, { q: 'kat', at: 50 }, fakeW2D), null); // ældre
+  assert.ok(receiveForce(st, g.force, { unsupported: g.unsupported }));
+  assert.equal(st.routine, LIVE_ROUTINE.id);
+  assert.equal(st.mode, 'sequence');
+  assert.equal(st.link.lastIn.shown, '09 · 58 · 41');
+});
+
+test('google: æøå springes over med advarsel, ord uden cifre giver ingen fejl', () => {
+  const st = fresh();
+  const g = googleToForce(st, { q: 'måde', at: 5 }, fakeW2D);
+  assert.deepEqual(g.unsupported, ['e', 'å']);
+  assert.equal(g.force.digits, '81');
+  const none = googleToForce(st, { q: 'øø', at: 6 }, fakeW2D);
+  assert.equal(none.force, null);
+  assert.match(st.link.lastGoogle.error, /ingen Cryptext-cifre/);
+});
+
+test('google slået fra: tidsstempel huskes, ordet bruges ikke', () => {
+  const st = fresh();
+  st.link.google = false;
+  assert.equal(googleToForce(st, { q: 'mads', at: 7 }, fakeW2D), null);
+  assert.equal(st.link.googleAt, 7);
+});
+
+test('dublet: samme cifre + navn fra Noter inden for 10 s ignoreres', () => {
+  const st = fresh();
+  const g = googleToForce(st, { q: 'Mads', at: 1000 }, fakeW2D);
+  assert.ok(receiveForce(st, g.force));
+  // Noter+ sender det samme ord som force 2 s senere
+  assert.equal(receiveForce(st, { digits: '95841', name: 'mads', by: 'noter', at: 3000 }), null);
+  assert.equal(st.link.forceAt, 3000);
+  // samme tal, andet navn → nyt mål
+  assert.ok(receiveForce(st, { digits: '95841', name: 'sdam', by: 'noter', at: 4000 }));
+  // samme igen efter mere end 10 s → nyt mål
+  assert.ok(receiveForce(st, { digits: '95841', name: 'sdam', by: 'noter', at: 4000 + DUP_MS + 1 }));
+});

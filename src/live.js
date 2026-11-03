@@ -56,7 +56,12 @@ export function shapeFor(digits, { shape = 'auto', blind = false } = {}) {
 
 // Modtag rummets force-felt. Ændrer settings og returnerer { digits, name, shape }, eller null.
 // Kun nyere end sidst modtagne (forceAt), og aldrig vores eget (by = 'stopwatch').
-export function receiveForce(settings, force) {
+// Samme cifre + navn inden for DUP_MS (fx Google-ordet direkte og igen via Noter+) = dublet:
+// ignoreres, så tællerne ikke nulstilles to gange.
+export const DUP_MS = 10000;
+const sameName = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+
+export function receiveForce(settings, force, extra = {}) {
   const link = settings.link;
   if (!force || typeof force !== 'object' || force.by === BY) return null;
   const at = Number(force.at) || 0;
@@ -64,6 +69,8 @@ export function receiveForce(settings, force) {
   link.forceAt = at;
   const digits = onlyDigits(force.digits);
   if (!digits || !link.receive) return null;
+  const prev = link.lastIn;
+  if (prev && prev.digits === digits && sameName(prev.name, force.name) && Math.abs(at - prev.at) < DUP_MS) return null;
   if (!findRoutine(settings, LIVE_ROUTINE.id)) settings.routines.unshift(builtinRoutine(LIVE_ROUTINE));
   selectRoutine(settings, LIVE_ROUTINE.id); // gemmer den rutine, du stod i, og skifter til live-rutinen
   const shape = shapeFor(digits, { shape: link.shape, blind: settings.blind });
@@ -80,8 +87,34 @@ export function receiveForce(settings, force) {
   settings.active = true;
   storeActive(settings);
   link.sentDigits = targetDigits(settings); // send ikke det modtagne mål tilbage (heller ikke med 0 foran)
-  link.lastIn = { digits, name: force.name ?? null, by: force.by ?? null, at, form: shape.label, note: shape.note, warn: shape.warn };
-  return { digits, name: force.name ?? null, shape };
+  const shown = shape.mode === 'single' ? shape.value : shape.text.split(' ').join(' · ');
+  link.lastIn = {
+    digits, name: force.name ?? null, by: force.by ?? null, at, form: shape.label, note: shape.note, warn: shape.warn,
+    shown, unsupported: extra.unsupported || [],
+  };
+  return { digits, name: force.name ?? null, shape, shown };
+}
+
+// Rummets google-felt (Fake Google: { q, at }) → et force, der går samme vej som et modtaget mål.
+// Kun nyere end sidst brugte (googleAt), så det samme søgeord aldrig bruges to gange.
+// Returnerer { force, unsupported, word } – force er null, hvis ordet ikke giver cifre.
+export function googleToForce(settings, google, wordToDigits) {
+  const link = settings.link;
+  if (!google || typeof google !== 'object' || typeof wordToDigits !== 'function') return null;
+  const at = Number(google.at) || 0;
+  if (at <= (link.googleAt || 0)) return null;
+  link.googleAt = at;
+  const word = String(google.q ?? '').trim();
+  if (!word || !link.google) return null;
+  const r = wordToDigits(word) || {};
+  const digits = onlyDigits(r.digits);
+  const unsupported = Array.isArray(r.unsupported) ? r.unsupported : [];
+  if (!digits) {
+    link.lastGoogle = { word, at, unsupported, error: 'Ordet giver ingen Cryptext-cifre' };
+    return { force: null, unsupported, word };
+  }
+  link.lastGoogle = null;
+  return { force: { digits, name: word, by: 'google', at }, unsupported, word };
 }
 
 // Cifrene i stopurets nuværende mål (det, der står på uret ved Stop/runder)

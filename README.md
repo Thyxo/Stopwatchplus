@@ -183,6 +183,13 @@ Stopuret kan modtage forcetallet live fra **Noter+** (Cryptext-navnet som tal, f
 - Loggen viser "Mål fra Noter: 59841 (mAds)". Panelet viser, hvilken form tallet fik, og evt. en advarsel.
 - Tidsstemplet gemmes, så samme mål ikke bruges igen, når appen genåbnes.
 
+**Fake Google → Cryptext** (kontakten *Modtag fra Google*, standard til): Når tilskueren søger på Fake Google (soeg.vercel.app), skriver siden `google { q, at }` i rummet. Stopuret omsætter selv ordet til Cryptext-cifre med `wordToDigits()` fra `src/cryptext.js` (uændret kopi fra Noter+, samme tabel) – det virker også, når Noter+ er sat på pause i baggrunden. Cifrene går samme vej som et mål fra Noter: rutinen **Noter+ (live)**, form efter reglen herunder.
+- Ordet vises aldrig for tilskueren – kun i panelet og loggen: "Mål fra Google: fortnite → 05 · 98 · 41".
+- Kun et søgeord, der er nyere end det sidst brugte, tages (`googleAt` gemmes), så det samme ord aldrig bruges to gange – heller ikke efter genstart.
+- Sender Noter+ bagefter det samme ord som `force` (samme cifre og navn inden for 10 s), ignoreres det, så tællerne ikke nulstilles to gange.
+- Bogstaver uden Cryptext-tegn (æ, ø, å, tal, tegn) springes over, og panelet viser en advarsel. Giver ordet ingen cifre, sker der intet.
+- Mangler `src/cryptext.js`, virker alt andet som før, og panelet skriver, at Google venter på filen.
+
 **Tallets form på uret** – *Tallets form: Auto* (anbefalet):
 
 | Tal | Vises som | Hvorfor |

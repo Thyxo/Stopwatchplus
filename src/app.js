@@ -10,7 +10,7 @@ import {
 } from './routines.js';
 import { STACKS, SUITS, VALUES, prettyCard, stackCards, cardPosition } from './stacks.js';
 import { createLink, cleanRoom } from './link.js';
-import { receiveForce, forceToSend, resultFor, targetDigits, letterCount } from './live.js';
+import { receiveForce, googleToForce, forceToSend, resultFor, targetDigits, letterCount } from './live.js';
 import { numberFromDigits, cellAt as homeCellAt, valueAt, suitAt, cardFromInput } from './fhinput.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -25,6 +25,7 @@ let runsDone = 0;
 // Live-forbindelse (se nederst). Erklæret her, fordi motorens log bruger den.
 let link = null;
 let linkStatus = 'off';
+let wordToDigits = null; // fra src/cryptext.js (se onLinkState)
 const honestLeft = () => Math.max(0, (settings.honestRuns | 0) - runsDone);
 
 const engine = new ForceEngine({
@@ -623,7 +624,9 @@ function renderLog() {
     d.className = 'cell';
     const time = new Date(e.at).toTimeString().slice(0, 8).replace(/:/g, '.');
     if (e.kind === 'noter') {
-      d.textContent = `${time}  Mål fra ${e.by === 'calc' ? 'Lommeregner' : 'Noter'}: ${e.digits}${e.name ? ` (${e.name} · ${letterCount(e.name)} bogst.)` : ''}`;
+      d.textContent = e.by === 'google'
+        ? `${time}  Mål fra Google: ${e.name} → ${e.shown || e.digits}`
+        : `${time}  Mål fra ${e.by === 'calc' ? 'Lommeregner' : 'Noter'}: ${e.digits}${e.name ? ` (${e.name} · ${letterCount(e.name)} bogst.)` : ''}`;
       box.appendChild(d);
       continue;
     }
@@ -932,6 +935,7 @@ const INFO = {
   homeSetup: 'Tag 3 screenshots af dine hjemmeskærm-sider med Ur på side 3 (ensfarvet baggrund). Guiden måler selv ikonerne. Tal: swipe fra et ciffer-ikon (højre 3×3-blok nederst = 1-9, ikonet over midten = 0) på side 1 og 2, tryk Ur. Kort: swipe side 1 → 2 fra værdien (4 nederste rækker, kolonne 2-4 = 1-12, det sorte felt under ikonerne = K), side 2 → 3 fra kulørens række (4 nederste rækker = ♣ ♥ ♠ ♦). 3 tryk på et tomt sted åbner panelet.',
   peekHold: 'Efter Nulstil: hold fingeren på tallet i et halvt sekund for at se det sidste stop og alle runder. Slip, så står der 00.00,00 igen.',
   link: 'Skriv samme kode som i Noter+ og Lommeregneren (3-40 tegn: a-z, 0-9, bindestreg). Mål fra Noter lægges i rutinen "Noter+ (live)" og slår force til. Dine stop sendes tilbage. Uden kode eller net virker stopuret som før.',
+  linkGoogle: 'Når tilskueren søger på Fake Google, omsættes ordet til Cryptext-cifre (samme kodning som Noter+) og bliver stopurets mål i rutinen "Noter+ (live)". Ordet vises aldrig – kun her i panelet. Samme ord bruges aldrig to gange. Bogstaver uden Cryptext-tegn (æ, ø, å, tal) springes over med en advarsel.',
   linkShape: 'Auto (anbefalet): 1-2 cifre vises som hundrededele; længere tal fordeles på runder, 2 cifre pr. runde – det rammes altid usynligt. "Tid når muligt": gyldige tider (sekunder/minutter ≤ 59) vises som tid, fx 1437 → 14,37 – men sekunder/minutter rammes kun, hvis de stopper tæt på (eller med Blind).',
   digitW: 'Hvor tynde de store tal er. Læg appen ved siden af den rigtige Ur i app-skifteren og justér, til stregerne er ens. Lavere = tyndere.',
   jumpTol: 'Hvor meget et sekund-ciffer må springe ved Stop for at ramme målet. Ingen = helt usynligt (anbefalet).',
@@ -1058,13 +1062,20 @@ function renderLink() {
   st.className = 'link-status ' + linkStatus;
   const box = $('#linkIn');
   const li = settings.link.lastIn;
-  box.hidden = !li;
-  if (!li) return;
+  const lg = settings.link.lastGoogle;
+  const waiting = !wordToDigits && settings.link.google && settings.link.room.length >= 3;
+  box.hidden = !li && !lg && !waiting;
   box.textContent = '';
   const row = (html, cls) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = html; box.appendChild(d); };
+  const clock = (at) => new Date(at).toTimeString().slice(0, 5).replace(':', '.');
+  if (waiting) row('Google: venter på src/cryptext.js fra Noter+ (ikke kopieret ind endnu).', 'warn');
+  if (lg) row(`⚠ Fra Google: "${lg.word}" – ${lg.error}${lg.unsupported.length ? ` (uden tegn: ${lg.unsupported.join(' ')})` : ''}`, 'warn');
+  if (!li) return;
   const who = li.by === 'calc' ? 'Lommeregner' : 'Noter';
-  row(`Sidste mål fra ${who}: ${li.digits}${li.name ? ` (${li.name})` : ''} kl. ${new Date(li.at).toTimeString().slice(0, 5).replace(':', '.')}`);
-  if (li.name) { const n = letterCount(li.name); row(`Navn: ${li.name} – ${n} ${n === 1 ? 'bogstav' : 'bogstaver'} → forcér ${n} tal`); }
+  if (li.by === 'google') row(`Mål fra Google: ${li.name} → ${li.shown || li.digits} kl. ${clock(li.at)}`);
+  else row(`Sidste mål fra ${who}: ${li.digits}${li.name ? ` (${li.name})` : ''} kl. ${clock(li.at)}`);
+  if (li.unsupported && li.unsupported.length) row(`⚠ Uden Cryptext-tegn (sprunget over): ${li.unsupported.join(' ')}`, 'warn');
+  if (li.name && li.by !== 'google') { const n = letterCount(li.name); row(`Navn: ${li.name} – ${n} ${n === 1 ? 'bogstav' : 'bogstaver'} → forcér ${n} tal`); }
   row(`Vises som: ${li.form}`);
   if (li.note) row(li.note);
   if (li.warn) row('⚠ ' + li.warn, 'warn');
@@ -1091,16 +1102,29 @@ function startLink() {
   renderLink();
 }
 
+// Cryptext-kodningen (src/cryptext.js, kopi fra Noter+). Indlæses løst: mangler filen,
+// virker alt andet som før, og Google-ord venter, til den er der.
+import('./cryptext.js')
+  .then((m) => { wordToDigits = m.wordToDigits; if (link && link.state) onLinkState(link.state); })
+  .catch(() => { /* ikke kopieret ind endnu */ });
+
 function onLinkState(state) {
-  const force = state && state.force;
-  if (!force) return;
-  const before = settings.link.forceAt;
-  const got = receiveForce(settings, force);
-  if (settings.link.forceAt !== before) saveSettings(settings);
-  if (!got) return;
+  if (!state) return;
+  const before = [settings.link.forceAt, settings.link.googleAt];
+  // Fake Google: søgeordet → Cryptext-cifre → samme vej som et mål fra Noter
+  let g = null;
+  if (state.google && wordToDigits) g = googleToForce(settings, state.google, wordToDigits);
+  const forces = [state.force, g && g.force].filter(Boolean).sort((a, b) => (a.at || 0) - (b.at || 0));
+  let got = null;
+  for (const f of forces) {
+    const r = receiveForce(settings, f, f.by === 'google' ? { unsupported: g.unsupported } : {});
+    if (r) got = { ...r, by: f.by };
+  }
+  if (settings.link.forceAt !== before[0] || settings.link.googleAt !== before[1]) saveSettings(settings);
+  if (!got) { if (g) renderLink(); return; }
   runsDone = 0; // som når man vælger en rutine
   if (sw.state !== 'running') engine.resetRun();
-  engine.record({ kind: 'noter', result: 'natural', digits: got.digits, name: got.name, by: force.by });
+  engine.record({ kind: 'noter', result: 'natural', digits: got.digits, name: got.name, by: got.by, shown: got.shown });
   syncIndicator();
   if (!secret.hidden) syncPanel();
   else renderLink();
