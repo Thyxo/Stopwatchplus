@@ -171,3 +171,22 @@ test('dublet: samme cifre + navn fra Noter inden for 10 s ignoreres', () => {
   // samme igen efter mere end 10 s → nyt mål
   assert.ok(receiveForce(st, { digits: '95841', name: 'sdam', by: 'noter', at: 4000 + DUP_MS + 1 }));
 });
+
+// Den rigtige tabel (src/cryptext.js, uændret kopi fra Noter+)
+import { wordToDigits } from '../src/cryptext.js';
+
+test('cryptext: "mads" → 59841 → runder 05 · 98 · 41', () => {
+  assert.equal(wordToDigits('mads').digits, '59841');
+  const st = fresh();
+  const g = googleToForce(st, { q: 'mads', at: 10 }, wordToDigits);
+  assert.equal(g.force.digits, '59841');
+  receiveForce(st, g.force, { unsupported: g.unsupported });
+  assert.equal(st.link.lastIn.shown, '05 · 98 · 41');
+});
+
+test('cryptext: æøå giver advarsel og ingen fejl', () => {
+  const st = fresh();
+  const g = googleToForce(st, { q: 'rødgrød', at: 11 }, wordToDigits);
+  assert.ok(g.unsupported.includes('ø'));
+  assert.ok(g.force.digits.length > 0);
+});

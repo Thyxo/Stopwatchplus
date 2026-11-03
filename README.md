@@ -188,7 +188,7 @@ Stopuret kan modtage forcetallet live fra **Noter+** (Cryptext-navnet som tal, f
 - Kun et søgeord, der er nyere end det sidst brugte, tages (`googleAt` gemmes), så det samme ord aldrig bruges to gange – heller ikke efter genstart.
 - Sender Noter+ bagefter det samme ord som `force` (samme cifre og navn inden for 10 s), ignoreres det, så tællerne ikke nulstilles to gange.
 - Bogstaver uden Cryptext-tegn (æ, ø, å, tal, tegn) springes over, og panelet viser en advarsel. Giver ordet ingen cifre, sker der intet.
-- Mangler `src/cryptext.js`, virker alt andet som før, og panelet skriver, at Google venter på filen.
+- Fx "mads" → 59841 → runder 05 · 98 · 41. Mangler `src/cryptext.js`, virker alt andet som før, og panelet skriver, at Google venter på filen.
 
 **Tallets form på uret** – *Tallets form: Auto* (anbefalet):
 
@@ -276,6 +276,7 @@ src/selftest.js       randomiseret selvtest (Node + i appen)
 src/app.js            UI, gestusser, panel, service worker
 src/fhinput.js        FakeHome-swipes → tal eller kort
 src/link.js           relæ-klient (kopi fra Calcplus/Noter+ – ret den ikke her)
+src/cryptext.js       ord → Cryptext-cifre (uændret kopi fra Noter+ – ret den ikke her)
 src/live.js           live-forbindelse: tallets form, modtag force, send uden dubletter
 fakehome.js           falsk hjemmeskærm (kopi fra notes-app – ret den ikke her)
 sw.js                 offline-cache (hæv VERSION ved ændringer)
